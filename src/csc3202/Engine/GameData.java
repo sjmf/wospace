@@ -20,6 +20,8 @@ public class GameData {
 	/** Whether the game is paused **/
 	private boolean paused = false;
 	
+	private boolean win = false;
+	
 	/**
 	 * Constructor with no of starting lives
 	 * @param lives
@@ -67,5 +69,13 @@ public class GameData {
 
 	public void pause() {
 		this.paused = ! paused;
+	}
+
+	public boolean isGameWon() {
+		return win;
+	}
+
+	public void setGameWon(boolean win) {
+		this.win = win;
 	}
 }
