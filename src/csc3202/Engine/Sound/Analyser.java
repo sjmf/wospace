@@ -140,7 +140,6 @@ public class Analyser {
 				
 		int sampleSizeBytes = format.getSampleSizeInBits() / 8;
 		int channels = format.getChannels();
-		format.getSampleRate();
 		
 		Map<Integer, List<Feature>> features = new TreeMap<Integer, List<Feature>>();
 		Map<Integer, List<Feature>> temp = null;
@@ -168,7 +167,7 @@ public class Analyser {
 									data[k+i+3]);
 					}
 					
-					buffer[0][j] = Float.intBitsToFloat((int) acc/channels);				// Average channels
+					buffer[0][j] = Float.intBitsToFloat((int) acc/channels);	// Average channels in a stereo (or surround) stream
 
 					j++;
 				}
@@ -334,9 +333,10 @@ public class Analyser {
 
 		ArrayList<String> want_plugins = new ArrayList<String>();
 		
+		// Comment & uncomment to test. Only first is used.
+		want_plugins.add("qm-vamp-plugins:qm-barbeattracker");
 //		want_plugins.add("qm-vamp-plugins:qm-onsetdetector");
 //		want_plugins.add("vamp-example-plugins:amplitudefollower");
-		want_plugins.add("qm-vamp-plugins:qm-barbeattracker");
 		
 		
 		if(args.length > 0) {
@@ -351,7 +351,13 @@ public class Analyser {
 			
 			Map<String, Plugin> loaded_plugins = a.getLoaded_plugins();
 			
-			Plugin p = loaded_plugins.get("qm-vamp-plugins:qm-barbeattracker");//"vamp-example-plugins:amplitudefollower");//
+			Plugin p = loaded_plugins.get(want_plugins.get(0));
+						
+//			p.selectProgram("General purpose");
+//			System.out.println("Selected Program: " +  p.getCurrentProgram());
+			
+//			p.setParameter("attack", 10);
+//			p.setParameter("release", 60);
 			
 			// Time execution
 			long startTime = System.nanoTime();
