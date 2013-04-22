@@ -20,32 +20,38 @@ import javazoom.spi.mpeg.sampled.file.MpegAudioFileReader;
  * Based on http://stackoverflow.com/questions/3125934
  * 
  */
-public class MP3 {
-	
-	private String filename;
-	private volatile Player player;
-	Map<String, Object> mp3_properties;
+public class ThreadedMP3 {
 
+	private String filename;
+	
+	private volatile Player player;
+	
+	private final Map<String, Object> mp3_properties;
 	
 	/** constructor that takes the name of an MP3 file */
-	public MP3(String filename) {
+	public ThreadedMP3(String filename) {
 		
 		this.filename = filename;
 
 		// Read MP3 metadata from ID3 tag
-		AudioFileFormat baseFileFormat = null;
+		AudioFileFormat baseFormat = null;
 		try {
-			baseFileFormat = new MpegAudioFileReader().getAudioFileFormat(new File(filename));
+			baseFormat = new MpegAudioFileReader().getAudioFileFormat(new File(filename));
 		} catch (UnsupportedAudioFileException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
-		mp3_properties = baseFileFormat.properties();
+		mp3_properties = baseFormat.properties();
 	}
 	
 	
+	public Map<String, Object> getMp3_properties() {
+		return mp3_properties;
+	}
+
+
 	/** Get the duration of the MP3 (for timers etc) */
 	public long getDuration() {
 		return ((Long) mp3_properties.get("duration")).longValue();
@@ -106,7 +112,7 @@ public class MP3 {
 	public static void main(String[] args) {
 		if(args.length > 0) {
 			String filename = args[0];
-			MP3 mp3 = new MP3(filename);
+			ThreadedMP3 mp3 = new ThreadedMP3(filename);
 			mp3.play();
 		} else {
 			System.err.println("No MP3 file to play specified on command line!");

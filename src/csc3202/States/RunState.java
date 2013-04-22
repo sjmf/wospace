@@ -11,7 +11,7 @@ import csc3202.Engine.Interfaces.Entity;
 import csc3202.Engine.Interfaces.GameState;
 import csc3202.Engine.OBJLoader.OBJManager;
 import csc3202.Engine.OBJLoader.OBJModel;
-import csc3202.Engine.Sound.MP3;
+import csc3202.Engine.Sound.ThreadedMP3;
 import csc3202.Entities.*;
 import csc3202.Entities.Ship.ShipState;
 
@@ -78,7 +78,7 @@ public class RunState implements GameState {
 	private int mouse_y;
 
 	// Audio stuff probably needs to be abstracted to another class or even thread
-	private MP3 mp3;
+	private ThreadedMP3 mp3;
 	private final String defaultMP3File = "res/Rushjet1_-_06_-_Return_to_Control.mp3";
 	
 	/**
@@ -87,7 +87,7 @@ public class RunState implements GameState {
 	public RunState(GameData data) {
 		
 		this.data = data;
-		this.mp3 = new MP3(defaultMP3File);
+		this.mp3 = new ThreadedMP3(defaultMP3File);
 		spawner = new EnemySpawner();
 	}
 	
