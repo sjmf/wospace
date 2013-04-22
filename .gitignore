@@ -1,0 +1,8 @@
+*.o
+*.swp
+*.class
+.project
+bin
+bin/*
+.classpath
+Thumbs.db

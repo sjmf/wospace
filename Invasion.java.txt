@@ -1,0 +1,318 @@
+package csc3202.Entities;
+
+import static csc3202.Engine.Globals.*;
+
+import csc3202.Engine.Engine;
+import csc3202.Engine.GameData;
+import csc3202.Engine.Globals;
+import csc3202.Engine.Interfaces.Entity;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import org.lwjgl.Sys;
+import org.lwjgl.util.vector.Vector3f;
+
+
+/**
+ * Invasion code abstracted from InvaderState.java as it was becoming quite crowded!
+ * 
+ * @author a9134046 - Sam Mitchell Finnigan
+ * @version Oct 2012
+ */
+public class Invasion {
+	
+	public static final int INVADER_COLS = 12;
+	public static final int INVADER_ROWS = 1;
+	public static final int INVADER_ROW_HEIGHT = 22;				//units
+	public static final int INVADER_SPACING  = 10;					// x-axis spacing
+	public static final int INVADER_START_POS = -FIELD_HEIGHT + (Z_OFFSET * 2);
+	
+	/**
+	 * Invasion state machine enum
+	 */
+	public enum InvasionState {
+		ENTERING,
+		RUNNING,
+		DESTROYED
+	}
+	
+	private InvasionState state = InvasionState.ENTERING;
+
+	private ArrayList<Enemy> invaders;
+	private ArrayList<Enemy> destroyed_invaders;
+	
+	private long inv_laser_last = Sys.getTime();	// Last time an invader fired a laser
+	private long inv_laser_delay = 0;				// Will be randomised
+	
+	// Invader movement speeds
+	private static float invader_speed = 0.0f;		// px/frame. This is cast to (int) when moving invaders
+		
+	private GameData data;
+		
+	/**
+	 * Create a new invasion
+	 */
+	public Invasion(GameData data) {
+		
+		this.data = data;
+		
+		invaders = new ArrayList<Enemy>();
+		destroyed_invaders = new ArrayList<Enemy>();
+	}
+	
+	
+	
+	/**
+	 * Initialize the invasion
+	 */
+	public int init() {
+
+		state = InvasionState.ENTERING;
+		invader_speed = INVADER_INIT_SPEED;	// Reset (for example in case of game restart)
+		
+		invaders.clear();
+		destroyed_invaders.clear();
+		
+		////////////////////////////////////////////////////////////////////
+		// Create invaders
+		
+		// Invaders start just above the field in order to run the move-down animation
+		int z_offset = Globals.FIELD_HEIGHT + (INVADER_ROWS * Z_OFFSET);
+		Enemy inv = null;
+		
+		// Calculate offset so we can start the invaders in the center of the field
+		float x_offset = Globals.FIELD_WIDTH - (((INVADER_SPACING * INVADER_COLS) + X_OFFSET) / 2 );
+		float y_offset = 0;
+		
+		float next_x;
+		for (int i=0; i<INVADER_ROWS; i++) {
+			for (int j=0; j<INVADER_COLS; j++) {
+				
+				next_x = x_offset + (X_OFFSET + j * INVADER_SPACING) - (Globals.FIELD_WIDTH) / 2;
+				
+				if(next_x > Globals.FIELD_WIDTH - (X_OFFSET *2))
+					break;	// Break out of the loop if we've filled the field up
+				
+				inv = new Enemy();
+				
+				inv.setPosition(new Vector3f(next_x, y_offset, -z_offset));
+				inv.setDirection(cloneVec3(Entity.DOWN));
+				
+				invaders.add(inv);
+			}
+			z_offset -= INVADER_ROW_HEIGHT;
+		}
+		
+		return SUCCESS;
+	}
+	
+	
+
+	/**
+	 * Update the invasion- fire lasers and move invaders
+	 * @return  0 if normal exit (success)
+	 * 			1 if still setting up
+	 * 			-1 if all invaders destroyed
+	 */
+	public int update(long delta, ArrayList<Laser> lasers) {
+		
+		if(state == InvasionState.DESTROYED)	return DONE;	// All the invaders died on the last tick
+		if(state == InvasionState.ENTERING)		return WAIT;	// Not ready. Keep runnning entering animation.		
+		
+		////////////////////////////////////////////////////////////////////
+		// Firing
+		
+		// Invader lasers
+		long time = Sys.getTime();
+		
+		if(time > inv_laser_last + inv_laser_delay) {
+			
+			// Pick a random invader to fire (-1 in case 0 generated)
+			int nominee = invaders.size() - Engine.rand.nextInt(INVADER_COLS * INVADER_ROWS) -1;
+	
+			if(nominee > 0 && nominee < invaders.size()) {
+				
+				invaders.get(nominee).fireLaser(lasers);	// Fire a laser in the invader lasers stack
+				inv_laser_last = time;
+				inv_laser_delay = invader_fire_rate + Engine.rand.nextInt(inv_firing_variability);
+			}
+		}
+		
+		
+		////////////////////////////////////////////////////////////////////
+		// Movement & Animation	
+		
+		if(invaders.size() == 0)
+			state = InvasionState.DESTROYED;	// You win this time!
+		
+		
+		return SUCCESS;
+	}
+
+	
+	
+	/**
+	 * Render all invaders and invader lasers
+	 */
+	public int render() {
+
+		for(Enemy i : invaders)
+			i.render();
+		
+		for(Enemy i : destroyed_invaders)
+			i.render();
+		
+		return SUCCESS;
+	}
+
+	
+	
+	/**
+	 * Move the invaders down the screen to enter.
+	 * Doesn't make sense to call this after the initial entry phase.
+	 * 
+	 * @param delta
+	 * @return
+	 */
+	public int move(long delta) {
+		
+		// Run entering animation if entering
+		if(state == InvasionState.ENTERING) {
+			
+			float farthest_invader = 0;
+			
+			for (Enemy i : invaders) {
+				
+				i.setAlpha( 1f + (i.getPosition().z + FIELD_HEIGHT) / (INVADER_ROWS * Z_OFFSET) );
+					
+				if(i.getPosition().z < farthest_invader)
+					farthest_invader = i.getPosition().z;
+			}
+			
+			if(farthest_invader > INVADER_START_POS) {	// If invaders are in position
+				state = InvasionState.RUNNING;			// begin normal sequence
+				return DONE;
+			}
+
+			return SUCCESS;	// Else return SUCCESS and don't run invader movement
+		}
+		
+		
+		Iterator<Enemy> ii = invaders.iterator();
+		while(ii.hasNext()) {
+			Enemy i = ii.next();
+			i.update(delta);
+			i.move(delta);		
+		}
+		
+		Iterator<Enemy> di = destroyed_invaders.iterator();
+		while(di.hasNext()) {
+			Enemy i = di.next();
+			if(i.update(delta) == -1) {
+				di.remove();
+			}
+		}
+		
+		return SUCCESS;
+	}
+	
+	
+	
+	/**
+	 * Destroy this invasion, meaning that a new one will be spawned on the next update
+	 * @return
+	 */
+	public int destroy() {
+		state = InvasionState.DESTROYED;
+		return SUCCESS;
+	}
+	
+	
+	
+	public InvasionState getState() {
+		return state;
+	}
+
+
+
+	/**
+	 * Detect collisions between the various game entities
+	 * @param lasers
+	 * @param ship
+	 * @return SUCCESS if no collision (OK), 
+	 * 			DONE if collision laser with ship, 
+	 * 			DESTROY if ship collision with invader?
+	 * 			(both mean death, DESTROY also respawns invasion in InvaderState)
+	 */
+	public int detectCollision(ArrayList<Laser> lasers, Ship ship) {
+
+		// Iterators (re-used within method multiple times)
+		Iterator<Enemy> ii = null;
+		Iterator<Laser> li = null;
+		
+		// Invader/ship collision detection
+		ii = invaders.iterator();
+		while(ii.hasNext()) {
+			Enemy i = ii.next();
+			if(ship.collides(i)) {
+				return DESTROY;	// Ship collision with invader! (spawn new invasion)
+			}
+		}
+		
+		// Laser/invader collision detection
+		li = lasers.iterator();
+		ii = invaders.iterator();
+		boolean removed = false;	// ii (Invader) should only be removed once per iteration
+		
+		// Check if any of the ship lasers on-screen collide with invaders/bunkers
+		while (li.hasNext()) {
+
+		    Laser l = li.next();
+			ii = invaders.iterator();
+			removed = false;
+			
+			// Check laser collision with invaders
+			while(ii.hasNext() && !removed)	{
+				Enemy i = ii.next();
+			
+				if(l.collides(i)) {
+
+					if(!removed) {
+						if(data != null)
+							data.addScore(10);	// Increment score
+						
+						destroyed_invaders.add(i);				// Add to destruction animation stack
+						i.destroy();
+						ii.remove();	// Remove invader
+						li.remove();	// Remove laser
+						removed = true;	// Protect against java.lang.IllegalStateException from multiple ii.remove() calls
+					}
+					
+					this.speedUp();
+				}
+			}
+		}
+		
+		return SUCCESS; // No deaths
+	}
+	
+	
+	
+	/**
+	 * Get the invaders in this invasion (for collision detection)
+	 * @return
+	 */
+	public ArrayList<Enemy> getInvaders() {
+		return invaders;
+	}
+
+
+	
+	/**
+	 * Increase the speed of this invasion by a percentage of the max speed
+	 */
+	public void speedUp() {
+		invader_speed += (float) MAX_INV_SPEED / (INVADER_ROWS * INVADER_COLS);	// Increment speed of the invaders on hit
+	}
+}
