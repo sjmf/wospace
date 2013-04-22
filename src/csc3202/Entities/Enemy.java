@@ -28,6 +28,7 @@ public class Enemy extends Entity implements Collidable {
 	float rot = 0.0f;											// Rotation angle for destruction animation
 	float rot_z = (Engine.rand.nextFloat() * 2) - 1.0f;			// z vector (rotation speed)
 	
+	private int score=0;
 	
 	/**
 	 * Default constructor
@@ -122,7 +123,6 @@ public class Enemy extends Entity implements Collidable {
 			if (! Hitbox.checkIntersection(FIELD_HITBOX, start, end) ) {
 				return DONE;		// if not, return DONE and Destroy this enemy 
 			}
-			
 		}
 
 		this.setPosition(position);
@@ -143,6 +143,18 @@ public class Enemy extends Entity implements Collidable {
 	public boolean collides(Collidable c) {
 		if (destroyed) return false;
 		return Hitbox.checkCollision(getHitbox(), c.getHitbox());
+	}
+
+
+
+	public int getScore() {
+		return score;
+	}
+
+
+
+	public void setScore(int score) {
+		this.score = score;
 	}
 	
 }

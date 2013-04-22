@@ -192,7 +192,7 @@ public class RunState implements GameState {
 					ei.remove();	// Remove enemy
 					li.remove();	// Remove laser 
 					laserRemoved = true;
-					data.addScore(10);	// Increment score
+					data.addScore(e.getScore());	// Increment score
 					break;			// avoiding IllegalStateException
 				}
 			}

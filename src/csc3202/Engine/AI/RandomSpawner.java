@@ -36,6 +36,8 @@ public class RandomSpawner extends Spawner {
 	
 		Enemy e = new Enemy();
 		
+		e.setScore(10);
+		
 		// Setup start position
 		int side = rand.nextInt(4);
 		

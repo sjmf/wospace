@@ -52,24 +52,49 @@ public class Analyser {
 		    if (!b) {
 		    	throw new RuntimeException("Plugin initialise failed");
 		    }
-		    
-//		    float[][] buffers = new float[1][1024];
-//		    for (int block = 0; block < 1024; ++block) {
-//				for (int i = 0; i < 1024; ++i) {
-//				    buffers[0][i] = 0.0f;
-//				}
-//				if (block == 512) {
-//				    buffers[0][0] = 0.5f;
-//				    buffers[0][1] = -0.5f;
-//				}
-//				RealTime timestamp = RealTime.frame2RealTime(block * 1024, 44100);
-//				Map<Integer, List<Feature>>
-//				    features = p.process(buffers, timestamp);
-//
-//				timestamp.dispose();
-//
-//				printFeatures(features);
-//		    }
+	    
+		    float[][] buffers = new float[1][1024];
+		    for (int block = 0; block < 1024; ++block) {
+				for (int i = 0; i < 1024; ++i) {
+				    buffers[0][i] = 0.0f;
+				}
+				if (block == 512) {
+				    buffers[0][0] = 0.5f;
+				    buffers[0][1] = -0.5f;
+				}
+				RealTime timestamp = RealTime.frame2RealTime(block * 1024, 44100);
+				Map<Integer, List<Feature>>
+				    features = p.process(buffers, timestamp);
+
+				timestamp.dispose();
+
+				printFeatures(features);
+		    }
+
+		    Map<Integer, List<Feature>>
+			features = p.getRemainingFeatures();
+
+		    System.out.println("Results from getRemainingFeatures:");
+
+		    printFeatures(features);
+		    p.dispose();
+		}
+	}
+	
+    private static void printFeatures(Map<Integer, List<Feature>> features) {
+		
+    	for (Map.Entry<Integer, List<Feature>> mi : features.entrySet()) {
+			System.out.print(mi.getKey() + ": ");
+			for (Feature li : mi.getValue()) {
+				System.out.print("[" + li.timestamp + "= ");
+				for (float v : li.values) {
+					System.out.print(v + " ");
+				}
+				System.out.print("] (\"");
+				System.out.print(li.label);
+				System.out.print("\") ");
+			}
+			System.out.println("");
 		}
 	}
 	
@@ -113,22 +138,6 @@ public class Analyser {
 	    for (int i = 0; i < outputs.length; ++i) {
 			System.out.println(i + ": " + outputs[i].identifier + " (sample type: " + outputs[i].sampleType + ")");
 	    }
-	}
-	
-    private static void printFeatures(Map<Integer, List<Feature>> features) {
-		for (Map.Entry<Integer, List<Feature>> mi : features.entrySet()) {
-			System.out.print(mi.getKey() + ": ");
-			for (Feature li : mi.getValue()) {
-				System.out.print("[" + li.timestamp + "= ");
-				for (float v : li.values) {
-					System.out.print(v + " ");
-				}
-				System.out.print("] (\"");
-				System.out.print(li.label);
-				System.out.print("\") ");
-			}
-			System.out.println("");
-		}
 	}
 
 	/** Unit test 
