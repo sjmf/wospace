@@ -36,7 +36,9 @@ public class MP3 {
 		AudioFileFormat baseFileFormat = null;
 		try {
 			baseFileFormat = new MpegAudioFileReader().getAudioFileFormat(new File(filename));
-		} catch (UnsupportedAudioFileException | IOException e) {
+		} catch (UnsupportedAudioFileException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
@@ -102,9 +104,13 @@ public class MP3 {
 	
 	/** test client */
 	public static void main(String[] args) {
-		String filename = args[0];
-		MP3 mp3 = new MP3(filename);
-		mp3.play();
+		if(args.length > 0) {
+			String filename = args[0];
+			MP3 mp3 = new MP3(filename);
+			mp3.play();
+		} else {
+			System.err.println("No MP3 file to play specified on command line!");
+		}
 	}
 
 }

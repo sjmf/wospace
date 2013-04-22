@@ -14,8 +14,13 @@ public class Analyser {
 		PluginLoader loader = PluginLoader.getInstance();
 		String[] plugins = loader.listPlugins();
 		
+		if(plugins.length == 0)
+			System.out.println("jVamp plugins missing!");
+		
 		for(String s : plugins)
 			System.out.println(s);
+		
+		
 	}
 
 	/** Unit test **/

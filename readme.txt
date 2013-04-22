@@ -13,7 +13,9 @@ choose this option- something like:
 
 	java -Djava.library.path='C:\Invaders\native\windows\' -jar 'C:\Invaders\inv.jar'
 
+You may need to install and build dependencies for audio-response to work. The packages on debian-based systems can be installed with:
 
+	sudo apt-get install libvamp-hostsdk3 vamp-plugin-sdk
 
 CONTROLS
 ========
