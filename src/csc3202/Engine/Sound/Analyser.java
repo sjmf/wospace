@@ -137,14 +137,15 @@ public class Analyser {
 		
 		if ( format.getEncoding() != AudioFormat.Encoding.PCM_SIGNED )
 			throw new IOException("analyseStream accepts only PCM_SIGNED format audio data!");
-				
+		
+		int blocksize = 1024;
 		int sampleSizeBytes = format.getSampleSizeInBits() / 8;
 		int channels = format.getChannels();
 		
 		Map<Integer, List<Feature>> features = new TreeMap<Integer, List<Feature>>();
 		Map<Integer, List<Feature>> temp = null;
 		
-		byte[] data = new byte[sampleSizeBytes * 4 * 1024];						// Sample size * sizeof float * 1024 samples
+		byte[] data = new byte[blocksize];										// Read 1024 samples
 		float[][] buffer = new float[1][data.length / channels];
 		
 		int nBytesRead = 0;
@@ -153,33 +154,41 @@ public class Analyser {
 		while (nBytesRead != -1) {
 			
 			nBytesRead = audioIn.read(data, 0, data.length);					// Read data & fill buffer
+			frame = block * blocksize;
 			
 			if (nBytesRead != -1) {												// Check we have not reached EOF
 				
 				int j=0;
 				for(int i=0; i<nBytesRead; i+=sampleSizeBytes * channels) {		// Fill float buffer from byte buffer, averaging channels
-					long acc=0;													// Long accumulator in case of overflow in the highest-order bit
 					
-					for(int k=0; k<channels; k++) {								// Convert each channel to int and add
-						acc+= asInt(data[k+i], 
-									data[k+i+1], 
-									data[k+i+2], 
-									data[k+i+3]);
+					short acc=0;												// 16-bit accumulator (16-bit signed PCM)
+					for(int k=0; k<channels; k++) {								// For each channel:
+						acc += asShort(data[i+k], data[i+k+1]) / channels;		//    Convert two bytes to 16 bit short and average channels
 					}
 					
-					buffer[0][j] = Float.intBitsToFloat((int) acc/channels);	// Average channels in a stereo (or surround) stream
-
+					float f = ((float) acc) / 32768f;							// Convert short to -1 to 1 normalised float
+					if( f > 1 ) f = 1;											// http://stackoverflow.com/questions/15087668
+					if( f < -1 ) f = -1;
+						
+					buffer[0][j] = f;
 					j++;
 				}
-				frame = block * 1024;
 				
 				// Analyse test data
-				RealTime timestamp = RealTime.frame2RealTime(frame, sampleRate);
+				RealTime timestamp = RealTime.frame2RealTime(frame, (int) format.getSampleRate());
 				
 				temp = p.process(buffer, timestamp);
+				float[] values = null;
+				
+				if(temp.size() > 0) {
+					values = temp.get(0).get(0).values;
+					for(float f: values)
+						System.out.println(Float.parseFloat(timestamp.toString()) /2 + " " + f);
+				}
+				
 				features.putAll(temp);
 				
-//				printFeatures(temp);
+				printFeatures(temp);
 				timestamp.dispose();
 			}
 			
@@ -187,6 +196,8 @@ public class Analyser {
 		}
 
 		features.putAll(p.getRemainingFeatures());
+		
+		printFeatures(features);
 		
 	    p.dispose();
 		
@@ -205,7 +216,7 @@ public class Analyser {
 	    float[][] buffer = new float[1][1024];
 	    for (int block = 0; block < 1024; ++block) {
 	    	
-	    	// READ: Fill with test data (read next 1024 bytes, as it were)
+	    	// READ: Fill with test data (read next block)
 			for (int i = 0; i < 1024; ++i) {
 			    buffer[0][i] = 0.0f;
 			}
@@ -307,21 +318,15 @@ public class Analyser {
 	
 	
 	/**
-	 * Convert 4 bytes to a 32-bit int as described at 
-	 * 		http://stackoverflow.com/questions/4513498
-	 * Used in byte/float conversion
+	 * Convert 2 bytes to a 16-bit short as described at
 	 * @param a
 	 * @param b
-	 * @param c
-	 * @param d
-	 * @return int
+	 * @return short
 	 */
-	public static final int asInt(byte a, byte b, byte c, byte d) {
-		return (a & 0xFF) 
-	            | ((b & 0xFF) << 8) 
-	            | ((c & 0xFF) << 16) 
-	            | ((d & 0xFF) << 24);
+	public static final short asShort(byte a, byte b) {
+		return (short) ((a & 0xFF) | ((b & 0xFF) << 8));
 	}
+	
 	
 	
 
@@ -334,9 +339,9 @@ public class Analyser {
 		ArrayList<String> want_plugins = new ArrayList<String>();
 		
 		// Comment & uncomment to test. Only first is used.
-		want_plugins.add("qm-vamp-plugins:qm-barbeattracker");
+//		want_plugins.add("qm-vamp-plugins:qm-barbeattracker");
 //		want_plugins.add("qm-vamp-plugins:qm-onsetdetector");
-//		want_plugins.add("vamp-example-plugins:amplitudefollower");
+		want_plugins.add("vamp-example-plugins:amplitudefollower");
 		
 		
 		if(args.length > 0) {
@@ -356,15 +361,15 @@ public class Analyser {
 //			p.selectProgram("General purpose");
 //			System.out.println("Selected Program: " +  p.getCurrentProgram());
 			
-//			p.setParameter("attack", 10);
-//			p.setParameter("release", 60);
+			p.setParameter("attack", 0.5f);
+			p.setParameter("release", 0.1f);
 			
 			// Time execution
 			long startTime = System.nanoTime();
 			Map<Integer, List<Feature>> features =
 					Analyser.analyseStream(p, mp3.getDecodedFormat(), mp3.getAudioIn());
 
-			printFeatures(features);
+//			printFeatures(features);
 			
 			long duration = System.nanoTime() - startTime;
 			
