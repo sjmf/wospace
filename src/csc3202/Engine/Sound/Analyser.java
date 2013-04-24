@@ -1,5 +1,6 @@
 package csc3202.Engine.Sound;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ import java.util.Map;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
 
 import org.vamp_plugins.*;
 import org.vamp_plugins.PluginLoader.LoadFailedException;
@@ -31,6 +33,9 @@ public class Analyser {
 	    }
 	}
 	
+	public static final String beatPlugin = "qm-vamp-plugins:qm-barbeattracker";
+	public static final String ampPlugin = "vamp-example-plugins:amplitudefollower";
+	
 	private final List<String> want_plugins;
 	private final Map<String, Plugin> loaded_plugins;
 
@@ -47,8 +52,9 @@ public class Analyser {
 	
 	/**
 	 * Construct an Analyser object
+	 * Singleton :)
 	 */
-	public Analyser(ArrayList<String> plugins_to_load) { 
+	private Analyser(ArrayList<String> plugins_to_load) { 
 		want_plugins = plugins_to_load;
 		loaded_plugins = new HashMap<String, Plugin>();
 	}
@@ -75,7 +81,12 @@ public class Analyser {
 		PluginLoader loader = PluginLoader.getInstance();
 		Plugin p = null;
 		
+		String[] paths = loader.getPluginPath();
 		String[] plugins = loader.listPlugins();
+		
+		System.out.print("VAMP plugin path(s): ");
+		for(String path : paths) 
+			System.out.println(path);
 
 		// Check for plugin existance
 		if(plugins.length == 0) {
@@ -121,6 +132,8 @@ public class Analyser {
 			    if (!b) {
 			    	throw new RuntimeException("Plugin initialise failed");
 			    }
+			    
+			    
 			}
 		}
 		
@@ -349,30 +362,29 @@ public class Analyser {
 	
 
 	/** 
-	 * Unit test - Analyse an MP3 provided as command-line parameter
+	 * Analyse the MP3 file at filename using the list of plugins provided 
 	 * @throws Exception 
 	 */
-	public static void main(String[] args) throws Exception {
-
-		ArrayList<String> want_plugins = new ArrayList<String>();
+	public static Map<String, ArrayList<AudioEvent>> run(String filename, ArrayList<String> use_plugins) {
+			
+		System.out.println("File:\n" + filename + "\n");
 		
-		want_plugins.add("qm-vamp-plugins:qm-barbeattracker");					// Add plugins to test
-		want_plugins.add("vamp-example-plugins:amplitudefollower");
+		Analyser a = new Analyser(use_plugins);							// Instantiate analyser
 		
-		if(args.length > 0) {
-			String filename = args[0];											// Read MP3 file from command line
-			
-			System.out.println("File:\n" + filename + "\n");
-			
-			Analyser a = new Analyser(want_plugins);							// Instantiate analyser
-			
+		Map<String, ArrayList<AudioEvent>> features = null;
+		
+		try {
 			a.init();
 			
 			Map<String, Plugin> loaded_plugins = a.getLoaded_plugins();
 			
+			if(loaded_plugins.values().size() < use_plugins.size())
+				System.err.println("Missing plugins");
+			
 			MP3RawPCM mp3;
 			long mp3_duration;
-			ArrayList<AudioEvent> features;
+			features = new HashMap<String, ArrayList<AudioEvent>>();
+			
 			for(Plugin p : loaded_plugins.values()) {
 				
 				System.out.println("\nRunning plugin: " + p.getName());
@@ -385,22 +397,34 @@ public class Analyser {
 				
 				// Time execution
 				long startTime = System.nanoTime();
-				features = a.analyseStream(0, p, mp3.getDecodedFormat(), mp3.getAudioIn());
+				String id = p.getIdentifier();
+				features.put(id, a.analyseStream(0, p, mp3.getDecodedFormat(), mp3.getAudioIn()));
 				
 				long duration = System.nanoTime() - startTime;
 	
-				System.out.println(features);
-				
 				System.out.println("Analysed:");
-				System.out.println("  " + features.size() + " features in " + (float)(duration / 1000000000.0f) + " seconds");
+				System.out.println("  " + features.get(id).size() + " features in " + (float)(duration / 1000000000.0f) + " seconds");
 				System.out.println("  of an MP3 of length " + (int)(mp3_duration / 1000000) + " seconds");
 				
 				// Toggle hack
-				Analyser.framesize_hack = !Analyser.framesize_hack;
+				Analyser.framesize_hack = false;
 			}
-			
-		} else {
-			System.err.println("No MP3 file to analyse specified on command line!");
+		} catch(FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (LineUnavailableException e) {
+			e.printStackTrace();
+		} catch (UnsupportedAudioFileException e) {
+			e.printStackTrace();
+		} catch (AnalyserException e) {
+			e.printStackTrace();
+		} catch (LoadFailedException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
+		
+		return features;
 	}
 }

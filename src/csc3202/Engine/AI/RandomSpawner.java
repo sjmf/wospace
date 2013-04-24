@@ -21,10 +21,32 @@ public class RandomSpawner extends Spawner {
 
 	/** Pseudorandom generator for enemy position on screen edge */
 	private Random rand;
+	
+	private boolean running = true;
     
     /** Observer pattern spawner class  */
 	public RandomSpawner() {
 		rand = new Random();
+	}
+
+	/* 
+	 * @see java.lang.Runnable#run()
+	 */
+	@Override
+	public void run() {
+		System.out.println("Spawner thread started");
+		
+		while (running) {
+			try {
+				// Tell observers that there are changes
+				setChanged();
+				notifyObservers(makeEnemies());		// Don't mind me, just making enemies...
+				
+				Thread.sleep(1000);					// In a music-based implementation, replace this with onset detection?
+			} catch (InterruptedException e) {
+				System.err.println(e.getMessage());
+			}
+		}
 	}
 	
 	
