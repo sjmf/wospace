@@ -34,7 +34,13 @@ public class Analyser {
 	private final List<String> want_plugins;
 	private final Map<String, Plugin> loaded_plugins;
 
-	
+	/**
+	 * Oh god this is horrible:
+	 * I can't work out why the amplitude plugin returns a correct timestamp, 
+	 * but the bar and beat tracker needs to be divided by 4. Set this to true
+	 * to divide timestamps by the frame size.
+	 */
+	public static boolean framesize_hack = true;
 	private static final int sampleRate = 44100;	// For purposes of this class, this will always be 44.1KHz (WAV)
 	
 	private boolean initialised = false;
@@ -237,8 +243,10 @@ public class Analyser {
 			
 			for(Feature li : mi.getValue()) {
 				RealTime t = li.timestamp;
-				long time = (((long)t.sec())*1000 + (long)t.msec()) /framesize;	//TODO: Hack alert! Figure out why timestamps are 
-																				//      a multiple of the frame-size
+				//TODO: Hack alert! Figure out why timestamps are a multiple of the frame-size
+				long time = (((long)t.sec())*1000 + (long)t.msec());
+				if(framesize_hack) time /= framesize;	
+
 				if(li.values.length > 0) {										// Amplitude has values
 					result.add(new AudioEvent(time,	li.values[0]));				
 				} else {														// Beats/bars use labels, don't know why
@@ -323,7 +331,7 @@ public class Analyser {
 			System.out.println(i + ": " + outputs[i].identifier + " (sample type: " + outputs[i].sampleType + ")");
 	    }
 
-		System.out.println("Preferred block size: " + p.getPreferredBlockSize() );
+		System.out.println("Preferred block size: " + p.getPreferredBlockSize() + "\n");
 	}
 	
 	
@@ -353,6 +361,8 @@ public class Analyser {
 		
 		if(args.length > 0) {
 			String filename = args[0];											// Read MP3 file from command line
+			
+			System.out.println("File:\n" + filename + "\n");
 			
 			Analyser a = new Analyser(want_plugins);							// Instantiate analyser
 			
@@ -384,6 +394,9 @@ public class Analyser {
 				System.out.println("Analysed:");
 				System.out.println("  " + features.size() + " features in " + (float)(duration / 1000000000.0f) + " seconds");
 				System.out.println("  of an MP3 of length " + (int)(mp3_duration / 1000000) + " seconds");
+				
+				// Toggle hack
+				Analyser.framesize_hack = !Analyser.framesize_hack;
 			}
 			
 		} else {
