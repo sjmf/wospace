@@ -15,7 +15,8 @@ import java.util.Map;
  */
 public class AudioEventRegistry {
 
-	private static AudioEventRegistry instance;
+	// Singleton with Eager initialization
+	private static final AudioEventRegistry instance = new AudioEventRegistry();
 	
 	private HashMap<String, ArrayList<AudioEvent>> events;
 	ArrayList<String> want_plugins;
@@ -49,10 +50,6 @@ public class AudioEventRegistry {
 
 	
 	public static synchronized AudioEventRegistry getInstance() {
-		
-		if(instance == null) {
-			instance = new AudioEventRegistry();
-		}
 		
 		return instance;
 	}
