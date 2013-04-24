@@ -27,7 +27,15 @@ class Main {
 		Engine engine = new Engine();		// Load data and set-up state
 		
 		GameData data = new GameData(Globals.LIVES);				// Initialise a GameData object to handle score and lives
-		engine.pushState(new LoaderState(data).init(engine));		// Push LoaderState to load states when resources are done loading
+		
+		if(args.length > 0)
+			data.setMp3File(args[0]);
+		else
+			System.err.println("No MP3 Specified. You're getting the silent treatment.");
+		
+		
+		engine.pushState(new LoaderState(data));		// Push LoaderState to load states when resources are done loading
+		
 		
 		try {
 			engine.run();			// Run the game engine

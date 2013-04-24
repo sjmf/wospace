@@ -103,6 +103,7 @@ public class Globals {
 	public static final String LASER_MODEL_PATH = "res/models/laser.obj";
 	public static final String SHIP_MODEL_PATH = "res/models/ship.obj";
 	
+	
 
 	public static final Vector3f cloneVec3(Vector3f vector) {
 		return new Vector3f(vector.x, vector.y, vector.z);

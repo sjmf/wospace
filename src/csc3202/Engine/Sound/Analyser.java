@@ -24,6 +24,9 @@ import org.vamp_plugins.PluginLoader.LoadFailedException;
  */
 public class Analyser {
 	
+	public static final String BEAT_PLUGIN = "qm-vamp-plugins:qm-barbeattracker";
+	public static final String AMP_PLUGIN =  "vamp-example-plugins:amplitudefollower";
+	
 	/** Exception thrown when analysis fails, for whatever reason */
 	public class AnalyserException extends Exception {
 	    private static final long serialVersionUID = -7896917649872471663L;
@@ -32,9 +35,6 @@ public class Analyser {
 	        super(message);
 	    }
 	}
-	
-	public static final String beatPlugin = "qm-vamp-plugins:qm-barbeattracker";
-	public static final String ampPlugin = "vamp-example-plugins:amplitudefollower";
 	
 	private final List<String> want_plugins;
 	private final Map<String, Plugin> loaded_plugins;
@@ -46,26 +46,44 @@ public class Analyser {
 	 * to divide timestamps by the frame size.
 	 */
 	public static boolean framesize_hack = true;
+	
 	private static final int sampleRate = 44100;	// For purposes of this class, this will always be 44.1KHz (WAV)
 	
 	private boolean initialised = false;
+	private volatile boolean interrupted = false;
 	
 	/**
 	 * Construct an Analyser object
 	 * Singleton :)
 	 */
-	private Analyser(ArrayList<String> plugins_to_load) { 
+	protected Analyser(ArrayList<String> plugins_to_load) { 
 		want_plugins = plugins_to_load;
 		loaded_plugins = new HashMap<String, Plugin>();
 	}
 	
 	
 	
-	public Map<String, Plugin> getLoaded_plugins() throws AnalyserException {
+	public Map<String, Plugin> getLoadedPlugins() throws AnalyserException {
 		if(initialised)
 			return loaded_plugins;
 		else
 			throw new AnalyserException("Analyser not initialized!");
+	}
+
+
+	public List<String> getWantedPlugins() {
+		return want_plugins;
+	}
+	
+	
+	/** Interrupt analysis **/
+	public void interrupt() {
+		interrupted = true;
+	}
+	
+	
+	public boolean isInterrupted() {
+		return interrupted;
 	}
 
 
@@ -180,7 +198,7 @@ public class Analyser {
 		int bytesRead = 0;
 		int block = 0;															// currentStep
 		int frame = 0;
-		while (bytesRead != -1) {
+		while (bytesRead != -1 && ! interrupted) {
 			
 			bytesRead = audioIn.read(data, 0, data.length);						// Read data & fill buffer
 			frame = block * blocksize;
@@ -200,11 +218,13 @@ public class Analyser {
 			++block;
 		}
 
-		temp = p.getRemainingFeatures();
-		addToEventList(result, temp, featureIndex, framesize);
+		if(!interrupted) {
+			temp = p.getRemainingFeatures();
+			addToEventList(result, temp, featureIndex, framesize);
+//			printFeatures(temp);
+		    p.dispose();
+		}
 		
-//		printFeatures(temp);
-	    p.dispose();
 		
 		return result;
 	}
@@ -365,26 +385,24 @@ public class Analyser {
 	 * Analyse the MP3 file at filename using the list of plugins provided 
 	 * @throws Exception 
 	 */
-	public static Map<String, ArrayList<AudioEvent>> run(String filename, ArrayList<String> use_plugins) {
+	public static List<BeatFile> run(Analyser a, String filename) {
 			
 		System.out.println("File:\n" + filename + "\n");
 		
-		Analyser a = new Analyser(use_plugins);							// Instantiate analyser
-		
-		Map<String, ArrayList<AudioEvent>> features = null;
+		List<BeatFile> beats = new ArrayList<BeatFile>();
 		
 		try {
 			a.init();
 			
-			Map<String, Plugin> loaded_plugins = a.getLoaded_plugins();
+			Map<String, Plugin> loaded_plugins = a.getLoadedPlugins();
 			
-			if(loaded_plugins.values().size() < use_plugins.size())
+			if(loaded_plugins.values().size() < a.getWantedPlugins().size())
 				System.err.println("Missing plugins");
 			
 			MP3RawPCM mp3;
 			long mp3_duration;
-			features = new HashMap<String, ArrayList<AudioEvent>>();
 			
+			int i=0;
 			for(Plugin p : loaded_plugins.values()) {
 				
 				System.out.println("\nRunning plugin: " + p.getName());
@@ -398,16 +416,31 @@ public class Analyser {
 				// Time execution
 				long startTime = System.nanoTime();
 				String id = p.getIdentifier();
-				features.put(id, a.analyseStream(0, p, mp3.getDecodedFormat(), mp3.getAudioIn()));
+
+				BeatFile bf = new BeatFile( filename, id, null );
+
+				// Only call analyse stream if we didn't find a cached BeatFile
+				if( bf.isCached() ) {
+					bf.read();
+				} 
+				else {
+					bf.setEvents( a.analyseStream(0, p, 
+									mp3.getDecodedFormat(), 
+									mp3.getAudioIn()));
+					bf.write();
+				}
+				beats.add(bf);
 				
 				long duration = System.nanoTime() - startTime;
 	
-				System.out.println("Analysed:");
-				System.out.println("  " + features.get(id).size() + " features in " + (float)(duration / 1000000000.0f) + " seconds");
+				System.out.println("Analysed using plugin: " + id );
+				System.out.println("  " + beats.get(i++).getEvents().size() + " features in " + (float)(duration / 1000000000.0f) + " seconds");
 				System.out.println("  of an MP3 of length " + (int)(mp3_duration / 1000000) + " seconds");
 				
 				// Toggle hack
 				Analyser.framesize_hack = false;
+				
+				if(a.isInterrupted()) break;
 			}
 		} catch(FileNotFoundException e) {
 			e.printStackTrace();
@@ -425,6 +458,6 @@ public class Analyser {
 			e.printStackTrace();
 		}
 		
-		return features;
+		return beats;
 	}
 }

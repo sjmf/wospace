@@ -4,7 +4,9 @@ package csc3202.States;
 import static org.lwjgl.opengl.GL11.*;
 import static csc3202.Engine.Globals.*;
 
+import org.lwjgl.input.Keyboard;
 import org.newdawn.slick.Color;
+import org.vamp_plugins.PluginLoader.LoadFailedException;
 
 import csc3202.Engine.Engine;
 import csc3202.Engine.FontManager;
@@ -13,6 +15,7 @@ import csc3202.Engine.Globals;
 import csc3202.Engine.Interfaces.GameState;
 import csc3202.Engine.OBJLoader.OBJManager;
 import csc3202.Engine.OBJLoader.OBJModel;
+import csc3202.Engine.Sound.ThreadedAnalyser;
 
 
 /**
@@ -23,6 +26,12 @@ import csc3202.Engine.OBJLoader.OBJModel;
 public class LoaderState implements GameState {
 
 	private static final String TEXT = "LOADING";
+	private static final int LOADBAR_LEN = 10;
+	private static final int LOADBAR_UPDATE_DELAY = 100;						// every 100ms increment loadbar
+	private static final String LOADBAR_AUDIO_MSG = "Analysing beats";			// every 100ms increment loadbar
+	
+	private ThreadedAnalyser analyser;
+	
 	private String next_resource = "";
 	
 	/** Models to load */
@@ -39,9 +48,12 @@ public class LoaderState implements GameState {
 	
 	/** No. of models models_loaded **/
 	private int models_loaded = 0;
+	private boolean analysis_finished = false;
+	
 	private boolean skip_first = true;	// Skip first update in order to render a frame first (updates happen prior to rendering in the engine) 
 	
-	private StringBuffer loadbar = new StringBuffer("-");
+	private StringBuilder loadbar = new StringBuilder("-");
+	private long lastLoaderIncrement = 0;
 	
 	private GameData data;
 	
@@ -60,6 +72,14 @@ public class LoaderState implements GameState {
 	public GameState init(Engine engine) {
 		
 		this.engine = engine;
+		lastLoaderIncrement = System.currentTimeMillis();
+
+		try {
+			analyser = new ThreadedAnalyser(data.getMp3File());
+			analyser.start();
+		} catch (LoadFailedException e) {
+			e.printStackTrace();
+		}
 		
 		return this;
 	}
@@ -73,7 +93,6 @@ public class LoaderState implements GameState {
 		
 		// Display "loading" while pre-loading models
 		if(OBJManager.getManager().isLoaded()) {
-
 			OBJManager.getManager().useDisplayLists();
 			
 			// Push initial game states onto the stack maintained by Engine
@@ -89,7 +108,9 @@ public class LoaderState implements GameState {
 	}
 
 
-
+	/**
+	 * Render the loader
+	 */
 	@SuppressWarnings("deprecation")
 	@Override
 	public int render() {
@@ -132,20 +153,6 @@ public class LoaderState implements GameState {
 		
 		return SUCCESS;
 	}
-
-
-	// Unused
-	@Override
-	public void keyInput(int key) {}
-
-	@Override
-	public void mouseInput(int x, int y, boolean leftDown, boolean rightDown) { }
-
-	@Override
-	public void pause() {}
-
-	@Override
-	public void resume() {}
 	
 	
 	/**
@@ -179,27 +186,70 @@ public class LoaderState implements GameState {
 			
 			model.useDisplayList();
 			
-			if(models_loaded < MODELS.length)
+			if(models_loaded < MODELS.length) {
 				next_resource =	MODELS[models_loaded].substring(
 						MODELS[models_loaded].lastIndexOf("/") +1, 
 						MODELS[models_loaded].length() 
 					);
-		} 
+			} else {
+				next_resource = LOADBAR_AUDIO_MSG;		// Set to "analysing" as that's usually the longest thing
+			}
+		}
 		
+		// Analyse Music
+		analysis_finished = analyser.resultAvailable();
 		
 		// Do this only when everything is loaded
-		if(models_loaded >= MODELS.length) {
+		if(models_loaded >= MODELS.length && analysis_finished) {
+			
+			data.setAnalysis(analyser.getResult());
+			
 			OBJManager.getManager().setLoaded();
 		} else {
-			loadbar.append("-");
+			incrementLoadBar();
+		}
+	}
+
+	
+	private void incrementLoadBar() {
+		
+		if(System.currentTimeMillis() > lastLoaderIncrement + LOADBAR_UPDATE_DELAY) {
+			
+			lastLoaderIncrement = System.currentTimeMillis();
+			
+			if(loadbar.length() < LOADBAR_LEN)
+				loadbar.append("-");
+			else
+				loadbar.setLength(0);		// empty
 		}
 	}
 
 
+	
+	@Override
+	public void keyInput(int key) {
+		if (Keyboard.getEventKeyState()) {
+			switch (key) {
+				case Keyboard.KEY_ESCAPE:				// Return to menu state
+					engine.stop();
+				default:
+					break;
+			}
+		}
+	}
+	
+	// Unused
+	@Override
+	public void mouseInput(int x, int y, boolean leftDown, boolean rightDown) {}
+
+	@Override
+	public void pause() {}
+
+	@Override
+	public void resume() {}
 
 	@Override
 	public void cleanup() {
-		// TODO Auto-generated method stub
-		
+		analyser.interrupt();
 	}
 }
