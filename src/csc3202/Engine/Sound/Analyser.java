@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -17,7 +16,9 @@ import org.vamp_plugins.PluginLoader.LoadFailedException;
 
 /**
  * Waveform analysis class
+ * 
  * @author Sam Mitchell Finnigan
+ * @version Apr '13
  */
 public class Analyser {
 	
@@ -124,123 +125,132 @@ public class Analyser {
 	
 	
 	/**
-	 * Analyse an audio stream and return its features 
+	 * Analyse an audio stream and return a feature in a more accessible format
+	 *  
+	 * @param featureIndex  Feature Map index to return. We don't care about other features. Make damn sure to get it right, or you'll get nothing back.
+	 * @param p             Plugin to use for analysis. Only two have been tested.
+	 * @param format        AudioFormat containing data about the stream
+	 * @param audioIn       Signed PCM 16-bit AudioInputStreams
 	 * 
-	 * @param audioIn: Signed PCM 16-bit little-endian AudioInputStreams
 	 * @return Map of timecodes to onset probabilites
 	 * @throws IOException 
 	 * @throws LineUnavailableException 
 	 */
-	public static Map<Integer, List<Feature>> analyseStream(Plugin p,
-								AudioFormat format, AudioInputStream audioIn) 
-						throws IOException, LineUnavailableException {
+	public ArrayList<AudioEvent> analyseStream(	int featureIndex, 
+												Plugin p, 
+												AudioFormat format, 
+												AudioInputStream audioIn) 
+								throws IOException, LineUnavailableException {
 		
 		if ( format.getEncoding() != AudioFormat.Encoding.PCM_SIGNED )
 			throw new IOException("analyseStream accepts only PCM_SIGNED format audio data!");
 		
-		int blocksize = 1024;
-		int sampleSizeBytes = format.getSampleSizeInBits() / 8;
-		int channels = format.getChannels();
+		int framesize = format.getFrameSize();
+		int blocksize = p.getPreferredBlockSize();								// stepSize
+		if(blocksize == 0) blocksize = 1024*format.getFrameSize();
 		
-		Map<Integer, List<Feature>> features = new TreeMap<Integer, List<Feature>>();
+		final int sampleBytes = format.getSampleSizeInBits() / 8;
+		final int channels = format.getChannels();
+
 		Map<Integer, List<Feature>> temp = null;
+		ArrayList<AudioEvent> result = new ArrayList<AudioEvent>();
 		
 		byte[] data = new byte[blocksize];										// Read 1024 samples
 		float[][] buffer = new float[1][data.length / channels];
 		
-		int nBytesRead = 0;
-		int block = 0;
+		int bytesRead = 0;
+		int block = 0;															// currentStep
 		int frame = 0;
-		while (nBytesRead != -1) {
+		while (bytesRead != -1) {
 			
-			nBytesRead = audioIn.read(data, 0, data.length);					// Read data & fill buffer
+			bytesRead = audioIn.read(data, 0, data.length);						// Read data & fill buffer
 			frame = block * blocksize;
 			
-			if (nBytesRead != -1) {												// Check we have not reached EOF
+			if (bytesRead != -1) {												// Check we have not reached EOF
 				
-				int j=0;
-				for(int i=0; i<nBytesRead; i+=sampleSizeBytes * channels) {		// Fill float buffer from byte buffer, averaging channels
-					
-					short acc=0;												// 16-bit accumulator (16-bit signed PCM)
-					for(int k=0; k<channels; k++) {								// For each channel:
-						acc += asShort(data[i+k], data[i+k+1]) / channels;		//    Convert two bytes to 16 bit short and average channels
-					}
-					
-					float f = ((float) acc) / 32768f;							// Convert short to -1 to 1 normalised float
-					if( f > 1 ) f = 1;											// http://stackoverflow.com/questions/15087668
-					if( f < -1 ) f = -1;
-						
-					buffer[0][j] = f;
-					j++;
-				}
+				mkFloatBuffer(bytesRead, sampleBytes, channels, data, buffer);	// Move data around for VAMP which likes float arrays
 				
-				// Analyse test data
 				RealTime timestamp = RealTime.frame2RealTime(frame, (int) format.getSampleRate());
 				
-				temp = p.process(buffer, timestamp);
-				float[] values = null;
+				temp = p.process(buffer, timestamp);							// Run actual analysis using VAMP plugin
+				addToEventList(result, temp, featureIndex, framesize);			// and convert it to custom format for this program
 				
-				if(temp.size() > 0) {
-					values = temp.get(0).get(0).values;
-					for(float f: values)
-						System.out.println(Float.parseFloat(timestamp.toString()) /2 + " " + f);
-				}
-				
-				features.putAll(temp);
-				
-				printFeatures(temp);
 				timestamp.dispose();
 			}
 			
-			block++;
+			++block;
 		}
 
-		features.putAll(p.getRemainingFeatures());
+		temp = p.getRemainingFeatures();
+		addToEventList(result, temp, featureIndex, framesize);
 		
-		printFeatures(features);
-		
+//		printFeatures(temp);
 	    p.dispose();
 		
-		return features;
+		return result;
 	}
+
+
+
+	/**
+	 * Convert buffer of PCM-format bytes to VAMP-compatible normalised floats
+	 * 
+	 * @param nBytesRead
+	 * @param sampleBytes
+	 * @param channels
+	 * @param data
+	 * @param buffer
+	 */
+	private static void mkFloatBuffer(int nBytesRead, int sampleBytes,
+										int channels, byte[] data, 
+										float[][] buffer) {
+		int j = 0;
+		for (int i = 0; i < nBytesRead; i += sampleBytes * channels) {      	// Fill float buffer from byte buffer, averaging channels
+			short acc = 0;                                                      // 16-bit accumulator (16-bit signed PCM)                      
+			for (int k = 0; k < channels; k++)									// For each channel:                                           
+				acc += toShort(data[i + k], data[i + k + 1]) / channels;        //    Convert two bytes to 16-bit short and average channels   
+
+			buffer[0][j] = acc / 32768f;										// Convert short to -1 to 1 normalised float
+			if( buffer[0][j] > 1 ) buffer[0][j] = 1;
+			if( buffer[0][j] < -1 ) buffer[0][j] = -1;							// http://stackoverflow.com/questions/15087668
+			j++;
+		}
+	}
+	
 	
 	
 	/**
-	 * TEST
+	 * Read out a feature map from VAMP into a format 
+	 *  containing only the data we specifically requested
+	 *  
+	 * @param result
+	 * @param temp
+	 * @param key
 	 */
-	public Map<Integer, List<Feature>> test(Plugin p) {
+	private static void addToEventList( ArrayList<AudioEvent> result, 
+										Map<Integer, List<Feature>> temp,
+										int key, int framesize ) throws NumberFormatException {
 		
-		Map<Integer, List<Feature>> features = null;
-		
-	    // This is the bit where we read a block/frame. 1 channel 1024 samples
-	    float[][] buffer = new float[1][1024];
-	    for (int block = 0; block < 1024; ++block) {
-	    	
-	    	// READ: Fill with test data (read next block)
-			for (int i = 0; i < 1024; ++i) {
-			    buffer[0][i] = 0.0f;
-			}
-			if (block == 512) {
-			    buffer[0][0] = 0.5f;
-			    buffer[0][1] = -0.5f;
-			}
+		for (Map.Entry<Integer, List<Feature>> mi : temp.entrySet()) {
 			
-			// Analyse test data
-			RealTime timestamp = RealTime.frame2RealTime(block * 1024, sampleRate);
-			features = p.process(buffer, timestamp);
+			if(mi.getKey() != key)	continue;
+			
+			for(Feature li : mi.getValue()) {
+				RealTime t = li.timestamp;
+				long time = (((long)t.sec())*1000 + (long)t.msec()) /framesize;	//TODO: Hack alert! Figure out why timestamps are 
+																				//      a multiple of the frame-size
+				if(li.values.length > 0) {										// Amplitude has values
+					result.add(new AudioEvent(time,	li.values[0]));				
+				} else {														// Beats/bars use labels, don't know why
+					result.add(new AudioEvent(time,	Float.parseFloat(li.label)));
+				}																// Can't think why any plugin would just want to return times?
 
-			timestamp.dispose();
-
-			printFeatures(features);
-	    }
-
-	    features = p.getRemainingFeatures();
-
-	    p.dispose();
-	    
-	    return features;
+//				System.out.println(time +" "+ ((li.values.length > 0) ? li.values[0] : li.label));
+				t.dispose();
+			}
+		}
 	}
-	
+		
 	
 	
 	/**
@@ -251,6 +261,7 @@ public class Analyser {
 		
     	for (Map.Entry<Integer, List<Feature>> mi : features.entrySet()) {
 			System.out.print(mi.getKey() + ": ");
+			
 			for (Feature li : mi.getValue()) {
 				System.out.print("[" + li.timestamp + "= ");
 				for (float v : li.values) {
@@ -318,15 +329,14 @@ public class Analyser {
 	
 	
 	/**
-	 * Convert 2 bytes to a 16-bit short as described at
+	 * Convert 2 bytes to a 16-bit short
 	 * @param a
 	 * @param b
 	 * @return short
 	 */
-	public static final short asShort(byte a, byte b) {
+	public static final short toShort(byte a, byte b) {
 		return (short) ((a & 0xFF) | ((b & 0xFF) << 8));
 	}
-	
 	
 	
 
@@ -338,45 +348,44 @@ public class Analyser {
 
 		ArrayList<String> want_plugins = new ArrayList<String>();
 		
-		// Comment & uncomment to test. Only first is used.
-//		want_plugins.add("qm-vamp-plugins:qm-barbeattracker");
-//		want_plugins.add("qm-vamp-plugins:qm-onsetdetector");
+		want_plugins.add("qm-vamp-plugins:qm-barbeattracker");					// Add plugins to test
 		want_plugins.add("vamp-example-plugins:amplitudefollower");
 		
-		
 		if(args.length > 0) {
+			String filename = args[0];											// Read MP3 file from command line
 			
-			String filename = args[0];
-			
-			Analyser a = new Analyser(want_plugins);
-			MP3RawPCM mp3 = new MP3RawPCM(filename);
-			long mp3_duration = new ThreadedMP3(filename).getDuration();
+			Analyser a = new Analyser(want_plugins);							// Instantiate analyser
 			
 			a.init();
 			
 			Map<String, Plugin> loaded_plugins = a.getLoaded_plugins();
 			
-			Plugin p = loaded_plugins.get(want_plugins.get(0));
-						
-//			p.selectProgram("General purpose");
-//			System.out.println("Selected Program: " +  p.getCurrentProgram());
+			MP3RawPCM mp3;
+			long mp3_duration;
+			ArrayList<AudioEvent> features;
+			for(Plugin p : loaded_plugins.values()) {
+				
+				System.out.println("\nRunning plugin: " + p.getName());
+				
+				mp3 = new MP3RawPCM(filename);
+				mp3_duration = new ThreadedMP3(filename).getDuration();
+				System.out.println(mp3.getDecodedFormat());
+				p.setParameter("attack", 0.1f);
+				p.setParameter("release", 0.5f);
+				
+				// Time execution
+				long startTime = System.nanoTime();
+				features = a.analyseStream(0, p, mp3.getDecodedFormat(), mp3.getAudioIn());
+				
+				long duration = System.nanoTime() - startTime;
+	
+				System.out.println(features);
+				
+				System.out.println("Analysed:");
+				System.out.println("  " + features.size() + " features in " + (float)(duration / 1000000000.0f) + " seconds");
+				System.out.println("  of an MP3 of length " + (int)(mp3_duration / 1000000) + " seconds");
+			}
 			
-			p.setParameter("attack", 0.5f);
-			p.setParameter("release", 0.1f);
-			
-			// Time execution
-			long startTime = System.nanoTime();
-			Map<Integer, List<Feature>> features =
-					Analyser.analyseStream(p, mp3.getDecodedFormat(), mp3.getAudioIn());
-
-//			printFeatures(features);
-			
-			long duration = System.nanoTime() - startTime;
-			
-			System.out.println("Analysed:");
-			System.out.println(" " + features.values().size() + " features in " + (float)(duration / 1000000000.0f) + " seconds");
-			System.out.println(" of an MP3 of length " + (int)(mp3_duration / 1000000) + " seconds");
-						
 		} else {
 			System.err.println("No MP3 file to analyse specified on command line!");
 		}

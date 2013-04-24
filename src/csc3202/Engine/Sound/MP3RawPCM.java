@@ -44,7 +44,7 @@ public class MP3RawPCM {
 				baseFormat.getSampleRate(),          // frameRate           the number of frames per second
 				false                                // bigEndian           true= big-endian byte order (false means little-endian)
 			);
-		System.out.println(decodedFormat);
+
 		this.audioIn = AudioSystem.getAudioInputStream(decodedFormat, in);
 	}
 	
