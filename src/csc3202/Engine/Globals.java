@@ -72,7 +72,7 @@ public class Globals {
 	
 	// Destruction animation constants
 	public static final float ALPHA_FADE = 0.001f;	// Alpha fade speed 
-	public static final float ROTATE_SPEED = 0.1f;			// Rotate fade speed
+	public static final float ROTATE_SPEED = 0.05f;			// Rotate fade speed
 	public static final float FALL_SPEED = 0.06f;			// Fall speed for fall-based destruction transforms
 
 	
@@ -103,7 +103,8 @@ public class Globals {
 	
 	// Base game speed by which others are multiplied
 	public static volatile float game_speed = 0f;
-	
+	public static volatile float fire_speed = 0f;
+	public static volatile long spawn_rate = 500l;	// Spawn threadsleep
 
 	public static final Vector3f cloneVec3(Vector3f vector) {
 		return new Vector3f(vector.x, vector.y, vector.z);

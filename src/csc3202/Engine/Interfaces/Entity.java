@@ -41,10 +41,24 @@ public abstract class Entity {
 	
 	/**
 	 * The direction in which an object (Entity, etc) is moving across the screen
+	 * -also affects speed.
 	 */
 	private Vector3f direction;
+	
+	/*
+	 * The position on the screen
+	 */
 	private Vector3f position;
+	
+	/*
+	 * The orientation on the screen
+	 */
 	private Vector3f orientation;
+	
+	/**
+	 * OPTIONAL: The rotation in degrees per second for a tumbling entity
+	 */
+	private float tumble = 0f;
 
 	
 	/** A Hitbox with coordinates and vertices in 3space **/
@@ -150,6 +164,16 @@ public abstract class Entity {
 
 	public OBJModel getModel() {
 		return model;
+	}
+
+
+	public float getTumble() {
+		return tumble;
+	}
+
+
+	public void setTumble(float tumble) {
+		this.tumble = tumble;
 	}
 	
 	

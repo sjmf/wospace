@@ -4,6 +4,7 @@ package csc3202.Entities;
 import static org.lwjgl.opengl.GL11.*;
 import static csc3202.Engine.Globals.*;
 
+import csc3202.Engine.Globals;
 import csc3202.Engine.Hitbox;
 import csc3202.Engine.Interfaces.Collidable;
 import csc3202.Engine.Interfaces.Entity;
@@ -29,7 +30,8 @@ public class Ship extends Entity implements Collidable {
 		INVINCIBLE
 	}
 
-	private static final Vector3f SHIP_START = new Vector3f(FIELD_WIDTH / 2, 0.0f, -FIELD_HEIGHT / 2);
+	private static final Vector3f SHIP_START = 
+			new Vector3f(FIELD_WIDTH / 2, 0.0f, -FIELD_HEIGHT / 2);
 	
 	// initially invulnerable to prevent death in first second or so
 	private ShipState state = ShipState.INVINCIBLE;
@@ -75,7 +77,7 @@ public class Ship extends Entity implements Collidable {
 		
 		long time = System.currentTimeMillis();
 		
-		if(time > last_fired + fire_rate) {
+		if(time > last_fired + (int)(fire_rate * Globals.fire_speed)) {
 			
 			// TWO (yes TWO!) laser stacks for additional pew pew
 			Laser l = null;
@@ -91,9 +93,8 @@ public class Ship extends Entity implements Collidable {
 			float x_r = (float) Math.cos(theta) * (px_r-getPosition().x) + getPosition().x;
 			float y_r = (float) Math.sin(theta) * (px_r-getPosition().x) + getPosition().z;
 			
-			
-			l = new Laser(new Vector3f(x_l, 0, y_l));
-			r = new Laser(new Vector3f(x_r, 0, y_r));
+			l = new Laser(new Vector3f(x_l, 0, y_r));
+			r = new Laser(new Vector3f(x_r, 0, y_l));
 			
 			l.colour(255.0f, 0.0f, 0.0f);
 			l.setDirection((Vector3f) invertVec3(this.getOrientation()).scale(LASER_SPEED));

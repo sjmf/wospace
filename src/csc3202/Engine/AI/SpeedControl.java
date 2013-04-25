@@ -15,7 +15,7 @@ import csc3202.Engine.Sound.BeatFile;
  */
 public class SpeedControl {
 
-	private static final int SAMPLES = 20;
+	private static final int SAMPLES = 50;
 	private static final int MULTIPLIER = 10;
     private final BeatFile amplitude;
     private SpeedThread s_thread = null;
@@ -66,6 +66,7 @@ public class SpeedControl {
 	    			movingavg /= SAMPLES;
 	    			
 	    			Globals.game_speed = movingavg * MULTIPLIER;
+	    			Globals.fire_speed = movingavg;
 	    			
 	    			// Sleep Time to next update (can skip if not running fast enough to keep up)
 	    			time = System.currentTimeMillis();

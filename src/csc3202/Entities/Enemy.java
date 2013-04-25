@@ -30,6 +30,8 @@ public class Enemy extends Entity implements Collidable {
 	
 	private int score=0;
 	
+	private int health=1;
+	
 	/**
 	 * Default constructor
 	 */
@@ -68,10 +70,7 @@ public class Enemy extends Entity implements Collidable {
 		glPushMatrix();
 			glColor4f(1f,1f,1f,a);
 			glTranslatef(this.getPosition().x, this.getPosition().y, this.getPosition().z);
-			if(destroyed)
-				glRotatef(rot + 180f, 0, 1, rot_z);
-			else
-				glRotatef(180f, 0, 1, 0);
+			glRotatef(rot, 1, 1, 1);
 			getModel().render();
 		glPopMatrix();
 		
@@ -88,15 +87,16 @@ public class Enemy extends Entity implements Collidable {
 
 	@Override
 	public int update(long delta) {
+		rot += this.getTumble() * Globals.game_speed * ROTATE_SPEED * delta;
 
 		if(destroyed) {
 			a -= ALPHA_FADE * 2 * delta;
-			rot += ROTATE_SPEED * delta;
 			this.getPosition().y -= FALL_SPEED * delta;
 
 			if(a <= 0.0f) 	// If we've faded out completely, let the calling class know 
 				return DONE;	// this enemy is to be removed from any holding data structure
 		}
+
 
 		return SUCCESS;
 	}
@@ -148,6 +148,12 @@ public class Enemy extends Entity implements Collidable {
 		if (destroyed) return false;
 		return Hitbox.checkCollision(getHitbox(), c.getHitbox());
 	}
+	
+	
+	
+	public boolean damage() {
+		return (--health < 0);
+	}
 
 
 
@@ -159,6 +165,18 @@ public class Enemy extends Entity implements Collidable {
 
 	public void setScore(int score) {
 		this.score = score;
+	}
+
+
+
+	public int getHealth() {
+		return health;
+	}
+
+
+
+	public void setHealth(int health) {
+		this.health = health;
 	}
 	
 }

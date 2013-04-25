@@ -193,13 +193,15 @@ public class RunState implements GameState {
 			while(ei.hasNext()) {
 				Enemy e = ei.next();
 				if(l.collides(e)) {
-					destroyed_enemies.add(e);				// Add to destruction animation stack
-					e.destroy();
-					ei.remove();	// Remove enemy
-					li.remove();	// Remove laser 
-					laserRemoved = true;
-					data.addScore(e.getScore());	// Increment score
-					break;			// avoiding IllegalStateException
+					if(e.damage()) {						// Returns true when killed
+						destroyed_enemies.add(e);				// Add to destruction animation stack
+						e.destroy();
+						ei.remove();	// Remove enemy
+						li.remove();	// Remove laser 
+						laserRemoved = true;
+						data.addScore(e.getScore());	// Increment score
+						break;			// avoiding IllegalStateException
+					}
 				}
 			}
 			if(laserRemoved) {
@@ -434,7 +436,7 @@ public class RunState implements GameState {
 			 else						// 2nd quadrant (adj -ve. opp +ve)
 				angle = PI - angle;
 			
-		} else if(opposite < 0) { 			// 4th quadrant (adj +ve, opp -ve)
+		} else if(opposite < 0) { 		// 4th quadrant (adj +ve, opp -ve)
 				angle = 2*PI + angle;
 		}								// else 1st quadrant (+ve +ve) no action
 		
@@ -497,7 +499,7 @@ public class RunState implements GameState {
 				break;
 			case Keyboard.KEY_P:	// Fall through to KEY_F4
 			case Keyboard.KEY_F4:
-//				camera.toggleLock();
+				camera.toggleLock();
 				data.pause();
 				if(paused)
 					this.resume();

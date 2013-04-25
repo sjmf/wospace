@@ -42,7 +42,7 @@ public class RandomSpawner extends Spawner {
 				setChanged();
 				notifyObservers(makeEnemies());		// Don't mind me, just making enemies...
 				
-				Thread.sleep(1000);					// In a music-based implementation, replace this with onset detection?
+				Thread.sleep(Globals.spawn_rate);	// In a music-based game, this is set by beats
 			} catch (InterruptedException e) {
 				System.err.println(e.getMessage());
 			}
@@ -64,22 +64,53 @@ public class RandomSpawner extends Spawner {
 		// Setup start position
 		int side = rand.nextInt(4);
 		
-		if(side == 0) {				// From top
-			e.setPosition( new Vector3f(rand.nextInt(FIELD_WIDTH - (Z_OFFSET*2)) + Z_OFFSET, 0, -FIELD_HEIGHT -Z_OFFSET) );
-			e.setDirection( (Vector3f) cloneVec3(Entity.DOWN).scale(Globals.ENEMY_SPEED) );
+		// Set position on start side
+		switch(side) {
+		case 0:			// From top
+			e.setDirection((Vector3f)  Vector3f.add(
+					cloneVec3(Entity.DOWN),
+					new Vector3f((rand.nextFloat()-0.5f), 0, 0),
+					null).scale(Globals.ENEMY_SPEED));
+			
+			e.setPosition(new Vector3f(
+					rand.nextInt(FIELD_WIDTH - (Z_OFFSET * 2))
+					+ Z_OFFSET, 0, -FIELD_HEIGHT - Z_OFFSET));
+			break;
+		case 1:		// From bottom
+			e.setDirection( (Vector3f) Vector3f.add(
+					cloneVec3(Entity.UP),
+					new Vector3f((rand.nextFloat()-0.5f), 0, 0),
+					null).scale(Globals.ENEMY_SPEED));
+			
+			e.setPosition(new Vector3f(
+					rand.nextInt(FIELD_WIDTH - (Z_OFFSET*2)) 
+					+ Z_OFFSET, 0, +(Z_OFFSET)) );
+			break;
+		case 2:		// From left
+			e.setDirection( (Vector3f) Vector3f.add(
+					cloneVec3(Entity.RIGHT),
+					new Vector3f(0, 0, (rand.nextFloat()-0.5f)),
+					null).scale(Globals.ENEMY_SPEED));
+			
+			e.setPosition( new Vector3f(
+					-X_OFFSET, 0, 
+					-rand.nextInt(FIELD_HEIGHT - X_OFFSET/2) - X_OFFSET/2) );
+			break;
+		case 3:					// From right
+			e.setDirection( (Vector3f) Vector3f.add(
+					cloneVec3(Entity.LEFT),
+					new Vector3f(0, 0, (rand.nextFloat()-0.5f)),
+					null).scale(Globals.ENEMY_SPEED));
+			
+			e.setPosition( new Vector3f(
+					FIELD_WIDTH + X_OFFSET, 0, 
+					-rand.nextInt(FIELD_HEIGHT - X_OFFSET/2) - X_OFFSET/2) );
+			break;
+		default:
+			break;
 		}
-		else if (side == 1) { 		// From bottom
-			e.setPosition( new Vector3f(rand.nextInt(FIELD_WIDTH - (Z_OFFSET*2)) + Z_OFFSET, 0, +(Z_OFFSET)) );
-			e.setDirection( (Vector3f) cloneVec3(Entity.UP).scale(Globals.ENEMY_SPEED) );
-		}
-		else if (side == 2) {		// From left
-			e.setPosition( new Vector3f(-X_OFFSET, 0, -rand.nextInt(FIELD_HEIGHT - X_OFFSET/2) - X_OFFSET/2) );
-			e.setDirection( (Vector3f) cloneVec3(Entity.RIGHT).scale(Globals.ENEMY_SPEED) );
-		}
-		else {						// From right
-			e.setPosition( new Vector3f(FIELD_WIDTH + X_OFFSET, 0, -rand.nextInt(FIELD_HEIGHT - X_OFFSET/2) - X_OFFSET/2) );
-			e.setDirection( (Vector3f) cloneVec3(Entity.LEFT).scale(Globals.ENEMY_SPEED) );
-		}
+		
+		e.setTumble( rand.nextFloat()-0.5f);
 		
 //		System.out.println("New " + e);
 		
