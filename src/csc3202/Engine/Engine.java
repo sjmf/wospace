@@ -468,6 +468,9 @@ public class Engine implements StateController {
 	public void changeState(GameState state) {
 
 		// Clean the current state
+		for(GameState s : states)
+			s.cleanup();
+		
 		states.clear();
 
 		// store and init the new state
@@ -494,6 +497,7 @@ public class Engine implements StateController {
 	@Override
 	public void popState() {
 		// clean-up the current state
+		states.get(states.size() -1).cleanup();
 		states.remove( states.size() -1 );
 
 		// resume previous state

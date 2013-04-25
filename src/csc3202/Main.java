@@ -31,7 +31,7 @@ class Main {
 		if(args.length > 0)
 			data.setMp3File(args[0]);
 		else
-			System.err.println("No MP3 Specified. You're getting the silent treatment.");
+			System.err.println("No MP3 Specified. You want the silent treatment?");
 		
 		
 		engine.pushState(new LoaderState(data));		// Push LoaderState to load states when resources are done loading
@@ -43,5 +43,7 @@ class Main {
 			engine.stop();			// Clean up threads
 			throw e;
 		}
+		
+		System.out.println("<< Main thread exit");
 	}
 }

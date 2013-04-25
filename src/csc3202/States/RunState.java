@@ -6,12 +6,13 @@ import static java.lang.Math.*;
 
 import csc3202.Engine.AI.EnemySpawner;
 import csc3202.Engine.AI.RandomSpawner;
+import csc3202.Engine.AI.SpeedControl;
 import csc3202.Engine.*;
 import csc3202.Engine.Interfaces.Entity;
 import csc3202.Engine.Interfaces.GameState;
 import csc3202.Engine.OBJLoader.OBJManager;
 import csc3202.Engine.OBJLoader.OBJModel;
-import csc3202.Engine.Sound.ThreadedMP3;
+import csc3202.Engine.Sound.MP3ToPCM;
 import csc3202.Entities.*;
 import csc3202.Entities.Ship.ShipState;
 
@@ -55,8 +56,6 @@ public class RunState implements GameState {
 	private ArrayList<Laser> enemy_lasers;
 	private ArrayList<Enemy> enemies;
 	private ArrayList<Enemy> destroyed_enemies;
-	
-	private EnemySpawner spawner;
 
 	// The player ship
 	private Ship ship;
@@ -78,8 +77,9 @@ public class RunState implements GameState {
 	private int mouse_y;
 
 	// Audio stuff probably needs to be abstracted to another class or even thread
-	private ThreadedMP3 mp3;
-	private final String defaultMP3File = "res/Rushjet1_-_06_-_Return_to_Control.mp3";
+	private MP3ToPCM mp3;
+	private EnemySpawner spawner;
+	private SpeedControl speedcont;
 	
 	/**
 	 * Constructor- Initialise State and set-up entities
@@ -87,20 +87,22 @@ public class RunState implements GameState {
 	public RunState(GameData data) {
 		
 		this.data = data;
-		this.mp3 = new ThreadedMP3(defaultMP3File);
+		this.mp3 = new MP3ToPCM(data.getMp3File());
 		spawner = new EnemySpawner();
+		
+		// TODO: This is a consequence of sticking things in lists, not Maps.
+		int i=0;
+		while(data.getAnalysis().get(i).getPluginName().compareTo("amplitudefollower") != 0)	i++;
+			speedcont = new SpeedControl(data.getAnalysis().get(i));
 	}
 	
 	
 
 	@Override
 	public GameState init(Engine engine) {
-
-		this.mp3.play();
 		
 		this.engine = engine;
 		this.camera = new Camera();
-//		Hitbox.render = true;
 		
 		// Set up camera (deep copy vector so it doesn't get messed up when the camera moves)
 		camera.setCameraPos(cloneVec3(topdown_xyz), cloneVec3(topdown_pyr));
@@ -123,8 +125,12 @@ public class RunState implements GameState {
 		ship = new Ship();
 		ship.setState(ShipState.OK);	// Ship at beginning of round does not have timed invincibility buff
 		
-		// Start spawning enemies
-		spawner.startSpawning(new RandomSpawner());
+		data.setStartTime(System.currentTimeMillis());
+
+		// Launch threads:
+		spawner.start(new RandomSpawner());	// Start spawning enemies
+		mp3.play();
+		speedcont.start();
 		
 		return this; // Success
 	}
@@ -151,7 +157,7 @@ public class RunState implements GameState {
 		// Get new enemies
 		spawner.populate(enemies);
 		
-		
+		System.out.println(Globals.game_speed);
 		///////////////////////////////////////////////////////////////////////
 		// Enemy updates & Collision detection
 
@@ -245,15 +251,33 @@ public class RunState implements GameState {
 			ship.setDirection(cloneVec3(Entity.NONE));	// Workaround for ship continuing in direction on death
 
 			ship.destroy();								// Call destroy on ship. Note that this only triggers the destruction animation.
+			
+			
+			ArrayList<Laser> explosion = new ArrayList<Laser>();				// Make a death explosion! (could abstract this if I add more effects)
+			
+			float inc = (float) ((2 * Math.PI) / 64);							// Spawn 64 lasers (2^6)
+			for(int i=0; i<64; i++) {
+				float rad = i * inc; 											// Calculate rotation in radians
+				
+				Vector3f dir = new Vector3f((float) cos(rad - PI/2), 0.0f, (float) sin(rad - PI/2));
+				Laser l = new Laser(ship.getPosition());						// New Laser with position
+				l.setDirection((Vector3f) cloneVec3(dir).scale(LASER_SPEED));	// direction
+				l.setOrientation(dir);											// and orientation
+				l.colour(1.0f, 0.5f, 0f);
+				explosion.add(l);
+			}
+			
+			ship_lasers.addAll(explosion);
 		}
+		
 		
 		////////////////////////////////////////////////////////////////////
 		// Check remaining lives
 		if(data.getLives() < 0) {
-			if(!game_over) {	// You've had your chips!				// Create the "Game Over" state
-				spawner.stopSpawning();
-				engine.pushState(new GameOverState(data).init(engine));	//  and push it onto the stack
-				game_over = true;										//  - but only once!
+			if(!game_over) {	// You've had your chips!						// Create the "Game Over" state
+				spawner.stop();
+				engine.pushState(new GameOverState(data).init(engine));			//  and push it onto the stack
+				game_over = true;												//  - but only once!
 			}
 			
 			return DONE; 				// Return ship destroyed if last life (0) used
@@ -531,7 +555,9 @@ public class RunState implements GameState {
 	@Override
 	public void pause() {
 		paused = !paused;
-		spawner.stopSpawning();
+		spawner.stop();
+		speedcont.pause();
+		mp3.pause();
 	}
 
 	
@@ -539,15 +565,18 @@ public class RunState implements GameState {
 	@Override
 	public void resume() {
 		paused = false;
-		spawner.startSpawning(new RandomSpawner());
+		spawner.start(new RandomSpawner());
+		
+		speedcont.resume();
+		mp3.resume();
 	}
 
 
 
 	@Override
 	public void cleanup() {
-		// TODO Auto-generated method stub
-		spawner.stopSpawning();
+		spawner.stop();
 		mp3.stop();
+		speedcont.stop();
 	}
 }

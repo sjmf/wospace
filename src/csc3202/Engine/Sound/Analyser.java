@@ -11,7 +11,6 @@ import java.util.Map;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.UnsupportedAudioFileException;
 
 import org.vamp_plugins.*;
 import org.vamp_plugins.PluginLoader.LoadFailedException;
@@ -399,7 +398,7 @@ public class Analyser {
 			if(loaded_plugins.values().size() < a.getWantedPlugins().size())
 				System.err.println("Missing plugins");
 			
-			MP3RawPCM mp3;
+			MP3ToPCM mp3;
 			long mp3_duration;
 			
 			int i=0;
@@ -407,8 +406,8 @@ public class Analyser {
 				
 				System.out.println("\nRunning plugin: " + p.getName());
 				
-				mp3 = new MP3RawPCM(filename);
-				mp3_duration = new ThreadedMP3(filename).getDuration();
+				mp3 = new MP3ToPCM(filename);
+				mp3_duration = mp3.getDuration();
 				System.out.println(mp3.getDecodedFormat());
 				p.setParameter("attack", 0.1f);
 				p.setParameter("release", 0.5f);
@@ -422,6 +421,7 @@ public class Analyser {
 				// Only call analyse stream if we didn't find a cached BeatFile
 				if( bf.isCached() ) {
 					bf.read();
+					System.out.println("BeatCache Read from File");
 				} 
 				else {
 					bf.setEvents( a.analyseStream(0, p, 
@@ -447,8 +447,6 @@ public class Analyser {
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (LineUnavailableException e) {
-			e.printStackTrace();
-		} catch (UnsupportedAudioFileException e) {
 			e.printStackTrace();
 		} catch (AnalyserException e) {
 			e.printStackTrace();

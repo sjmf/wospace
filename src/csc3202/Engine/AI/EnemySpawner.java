@@ -69,7 +69,7 @@ public class EnemySpawner {
 	/**
 	 * Muhahahahaha!
 	 */
-	public void startSpawning(Spawner spawner) {
+	public void start(Spawner spawner) {
 		
 		if(this.spawner != null)
 			spawner.stop();			// Stop any currently running threads which could get orphaned
@@ -85,7 +85,7 @@ public class EnemySpawner {
 	/**
 	 * Aww.
 	 */
-	public void stopSpawning() {
+	public void stop() {
 		if(this.spawner != null)
 			spawner.stop();
 		spawner = null;

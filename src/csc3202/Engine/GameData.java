@@ -36,6 +36,9 @@ public class GameData {
 	
 	/** Music analysis result */
 	private List<BeatFile> analysis;
+	
+	/** Timestamp of when the game was started **/
+	private long startTime = 0;
 
 	/**
 	 * Constructor with no of starting lives
@@ -108,5 +111,13 @@ public class GameData {
 
 	public void setAnalysis(List<BeatFile> result) {
 		this.analysis = result;
+	}
+
+	public long getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(long startTime) {
+		this.startTime = startTime;
 	}
 }

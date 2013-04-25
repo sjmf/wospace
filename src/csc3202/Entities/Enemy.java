@@ -109,17 +109,21 @@ public class Enemy extends Entity implements Collidable {
 	@Override
 	public int move(float delta) {
 		
-		// calculate new movement using vector- if in bounds, apply it 
-		Vector3f position = Vector3f.add(this.getPosition(), (Vector3f) cloneVec3(this.getDirection()).scale(delta), null);
+		// calculate new movement using vector- if in bounds, apply it
+		Vector3f position = Vector3f.add(this.getPosition(),
+				(Vector3f) cloneVec3(this.getDirection()).scale(delta * Globals.game_speed), null);
 
 		if(! Hitbox.checkCollision(this.getHitbox(), Globals.FIELD_HITBOX)) {
 			// Check if enemy movement vector is going towards play area
 
 			// Calculate end point of ray
-			Vector2f start = new Vector2f(this.getPosition().x, this.getPosition().z);
-			Vector2f scaleDir = (Vector2f) new Vector2f(this.getDirection().x / ENEMY_SPEED, this.getDirection().z / ENEMY_SPEED).scale(FIELD_HEIGHT);
-			Vector2f end = Vector2f.add(cloneVec2(start), scaleDir,	null);
-			
+			Vector2f start = new Vector2f(this.getPosition().x,
+					this.getPosition().z);
+			Vector2f scaleDir = (Vector2f) new Vector2f(this.getDirection().x
+					/ ENEMY_SPEED, this.getDirection().z / ENEMY_SPEED)
+					.scale(FIELD_HEIGHT);
+			Vector2f end = Vector2f.add(cloneVec2(start), scaleDir, null);
+
 			if (! Hitbox.checkIntersection(FIELD_HITBOX, start, end) ) {
 				return DONE;		// if not, return DONE and Destroy this enemy 
 			}

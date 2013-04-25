@@ -22,8 +22,8 @@ public class ThreadedAnalyser {
 	private Analyser analyser;
 	
 	/** 
-	 * Because parameterized generics can't be infered by instanceof at 
-	 * runtime, wrap the whole HashMap in an object
+	 * Because parameterized generics can't be inferred by instanceof at 
+	 * runtime, wrap the whole DS in an object
 	 * @author a9134046
 	 */
 	private class AudioEventResponse {
@@ -110,7 +110,7 @@ public class ThreadedAnalyser {
 	public void start() {
 		runner = new Thread(aSource);
         runner.start();
-        runner.setPriority( Thread.NORM_PRIORITY + 2 ); 
+//        runner.setPriority( Thread.NORM_PRIORITY + 2 ); 
 	}
 	
 	/** Interrupt file analysis **/

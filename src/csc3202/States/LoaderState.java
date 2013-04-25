@@ -73,7 +73,7 @@ public class LoaderState implements GameState {
 		
 		this.engine = engine;
 		lastLoaderIncrement = System.currentTimeMillis();
-
+		
 		try {
 			analyser = new ThreadedAnalyser(data.getMp3File());
 			analyser.start();

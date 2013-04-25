@@ -22,7 +22,7 @@ public class RandomSpawner extends Spawner {
 	/** Pseudorandom generator for enemy position on screen edge */
 	private Random rand;
 	
-	private boolean running = true;
+    private volatile boolean running = true;
     
     /** Observer pattern spawner class  */
 	public RandomSpawner() {
@@ -34,7 +34,7 @@ public class RandomSpawner extends Spawner {
 	 */
 	@Override
 	public void run() {
-		System.out.println("Spawner thread started");
+		System.out.println(">> Spawner thread started");
 		
 		while (running) {
 			try {
@@ -47,6 +47,7 @@ public class RandomSpawner extends Spawner {
 				System.err.println(e.getMessage());
 			}
 		}
+		System.out.println("<< Spawner thread exit");
 	}
 	
 	
@@ -83,5 +84,10 @@ public class RandomSpawner extends Spawner {
 //		System.out.println("New " + e);
 		
 		return new Enemy[]{e};
+	}
+
+	@Override
+	public void stop() {
+		running = false;
 	};
 }

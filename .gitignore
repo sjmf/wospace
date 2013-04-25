@@ -6,3 +6,5 @@ bin
 bin/*
 .classpath
 Thumbs.db
+beatcache
+beatcache/*

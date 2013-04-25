@@ -67,9 +67,7 @@ public class Globals {
 	// Maximum distance from edge of field allowed
 	public static final int X_OFFSET = 20;
 	public static final int Z_OFFSET = 20;
-	
-	
-	public static final float MAX_Y_OFFSET = 20f;
+	public static final float Y_OFFSET = 20f;
 	
 	
 	// Destruction animation constants
@@ -103,6 +101,8 @@ public class Globals {
 	public static final String LASER_MODEL_PATH = "res/models/laser.obj";
 	public static final String SHIP_MODEL_PATH = "res/models/ship.obj";
 	
+	// Base game speed by which others are multiplied
+	public static volatile float game_speed = 0f;
 	
 
 	public static final Vector3f cloneVec3(Vector3f vector) {
