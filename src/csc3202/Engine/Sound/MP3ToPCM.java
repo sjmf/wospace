@@ -31,8 +31,6 @@ public class MP3ToPCM {
 	
 	/**
 	 * Construct a RAW PCM MP3 decoder
-	 * @throws IOException 
-	 * @throws UnsupportedAudioFileException 
 	 */
 	public MP3ToPCM(String filename) {
 		
@@ -114,6 +112,7 @@ public class MP3ToPCM {
 		new Thread() {
 			public void run() {
 				System.out.println(">> MP3 thread started");
+				this.setPriority(NORM_PRIORITY + 2);	// Elevated priority
 				try {
 					rawplay(decodedFormat, audioIn);
 					in.close();

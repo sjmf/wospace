@@ -32,19 +32,23 @@ public class SpeedControl {
     		
     		// Loop variables
     		long startRun= System.currentTimeMillis();
-    		long startPause=0; 
-    		long time=0;
+    		long startPause=0;
     		int index=0;
     		
     		// Buffer and value for moving average calculation
     		float[] avgbuf = new float[SAMPLES];
     		float movingavg = 0.0f;
     		
+    		// Game speed calculations
+    		float avg = amplitude.getAvg();
+    		float e_min = 0.4f * avg;		// - 60%
+    		float e_max = 1.6f * avg;		// + 60%
+    		
     		AudioEvent e = null;
     		try {
 	    		List<AudioEvent> events = amplitude.getEvents();
 	    		
-	    		while(index < events.size() && running) {
+	    		while(++index < events.size() && running) {
 	    			
 	    			if(paused) {				// Handle pause condition
 	    				if(startPause == 0l) {
@@ -59,21 +63,26 @@ public class SpeedControl {
 	    			// Update game speed with moving average
 	    			e = events.get(index);
 	    			
-	    			avgbuf[index%SAMPLES] = e.value;
+	    			avgbuf[index%SAMPLES] = Globals.normalise(e.value, e_min, e_max);
 	    			
 	    			for(float a : avgbuf)		// Run moving average calculation
 	    				movingavg += a;
 	    			movingavg /= SAMPLES;
 	    			
-	    			Globals.game_speed = movingavg * MULTIPLIER;
-	    			Globals.fire_speed = movingavg;
+	    			if(movingavg > 0 && movingavg < e_max) {
+	    				Globals.game_speed = 0.1f + movingavg * MULTIPLIER;
+	    			} else if (movingavg < 0) {
+	    				Globals.game_speed = 0;
+	    			} else if(movingavg > e_max) {
+	    				Globals.game_speed = 1 * MULTIPLIER;
+	    			}
+	    			
+	    			System.out.println(Globals.game_speed);
 	    			
 	    			// Sleep Time to next update (can skip if not running fast enough to keep up)
-	    			time = System.currentTimeMillis();
-	    			if(startRun + e.time > time) {
+	    			if(startRun + e.time > System.currentTimeMillis()) {
 	    				Thread.sleep(e.time - amplitude.getEvents().get(index-1).time);
 	    			}
-	    			index++;
 	    		}
 			} catch (InterruptedException e1) {
 				e1.printStackTrace();

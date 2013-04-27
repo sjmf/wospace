@@ -80,12 +80,14 @@ public class OBJModel implements DisplayList, Texturable {
 	@Override
 	public void useDisplayList() {
 		
-		displayListOn = true;
-		
-		displayList = glGenLists(1);
-        glNewList(displayList, GL_COMPILE);
-        	draw();
-        glEndList();
+		if(!displayListOn) {
+			displayListOn = true;
+			
+			displayList = glGenLists(1);
+	        glNewList(displayList, GL_COMPILE);
+	        	draw();
+	        glEndList();
+		}
 	}
 	
 	

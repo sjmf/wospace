@@ -47,7 +47,7 @@ public class RunState implements GameState {
 	private Camera camera;
 	
 	// X/y/z and pitch/yaw/roll vectors for different camera views
-	private final Vector3f topdown_xyz = new Vector3f(-(Globals.FIELD_WIDTH / 2f), -262f, Globals.FIELD_HEIGHT / 2f);
+	private final Vector3f topdown_xyz = new Vector3f(-(Globals.FIELD_WIDTH / 2f), -400f, Globals.FIELD_HEIGHT / 2f);
 	private final Vector3f topdown_pyr = new Vector3f(90f, 0f, 0f);
 	
 	
@@ -72,6 +72,8 @@ public class RunState implements GameState {
 	
 	// Have we shown the Game Over screen?
 	private boolean game_over = false;
+	private boolean game_won = false;
+	private long duration;
 	
 	private int mouse_x; 
 	private int mouse_y;
@@ -81,7 +83,8 @@ public class RunState implements GameState {
 	private EnemySpawner spawner;
 	private SpeedControl speedcont;
 	
-	/**
+	
+	/**************************************************************************
 	 * Constructor- Initialise State and set-up entities
 	 */
 	public RunState(GameData data) {
@@ -90,14 +93,22 @@ public class RunState implements GameState {
 		this.mp3 = new MP3ToPCM(data.getMp3File());
 		spawner = new EnemySpawner();
 		
-		// TODO: This is a consequence of sticking things in lists, not Maps.
+		// This is a consequence of sticking things in lists, not Maps. :/
+		// This will only iterate maximum twice so it's fine
 		int i=0;
-		while(data.getAnalysis().get(i).getPluginName().compareTo("amplitudefollower") != 0)	i++;
-			speedcont = new SpeedControl(data.getAnalysis().get(i));
+		while(data.getAnalysis().get(i).getPluginName().compareTo("amplitudefollower") != 0) i++;
+		
+		speedcont = new SpeedControl(data.getAnalysis().get(i));
+			
+		// Set the length of the game session
+		duration = data.getAnalysis().get(0).getDuration();
 	}
 	
 	
 
+	/**************************************************************************
+	 * Init the state of play
+	 */
 	@Override
 	public GameState init(Engine engine) {
 		
@@ -137,7 +148,7 @@ public class RunState implements GameState {
 
 	
 	
-	/**
+	/**************************************************************************
 	 * Update the state of play.
 	 * Ordering of code in this method is very important!
 	 * 
@@ -152,16 +163,17 @@ public class RunState implements GameState {
 				
 		if (paused)
 			return WAIT; // Do nothing if paused
-
+			
 		
 		// Get new enemies
 		spawner.populate(enemies);
 		
-		System.out.println(Globals.game_speed);
+//		System.out.println(Globals.game_speed);
+		
+		
+		
 		///////////////////////////////////////////////////////////////////////
 		// Enemy updates & Collision detection
-
-		
 		Iterator<Enemy> de = destroyed_enemies.iterator();
 		while(de.hasNext()) {
 			Enemy i = de.next();
@@ -178,7 +190,7 @@ public class RunState implements GameState {
 			l.update(delta);
 			
 			if (l.move(delta) == DONE) {
-				li.remove();	// Need to avoid ConcurrentModificationException
+				li.remove();													// Need to avoid ConcurrentModificationException
 			}
 		}
 		
@@ -193,14 +205,14 @@ public class RunState implements GameState {
 			while(ei.hasNext()) {
 				Enemy e = ei.next();
 				if(l.collides(e)) {
-					if(e.damage()) {						// Returns true when killed
-						destroyed_enemies.add(e);				// Add to destruction animation stack
+					if(e.damage()) {											// Returns true when killed
+						destroyed_enemies.add(e);								// Add to destruction animation stack
 						e.destroy();
-						ei.remove();	// Remove enemy
-						li.remove();	// Remove laser 
+						ei.remove();											// Remove enemy
+						li.remove();											// Remove laser 
 						laserRemoved = true;
-						data.addScore(e.getScore());	// Increment score
-						break;			// avoiding IllegalStateException
+						data.addScore(e.getScore());							// Increment score
+						break;													//  avoiding IllegalStateException
 					}
 				}
 			}
@@ -250,9 +262,9 @@ public class RunState implements GameState {
 		
 		if (collided > 0) {
 			state = PlayState.DEFEATED;
-			ship.setDirection(cloneVec3(Entity.NONE));	// Workaround for ship continuing in direction on death
+			ship.setDirection(cloneVec3(Entity.NONE));							// Workaround for ship continuing in direction on death
 
-			ship.destroy();								// Call destroy on ship. Note that this only triggers the destruction animation.
+			ship.destroy();														// Call destroy on ship. Note that this only triggers the destruction animation.
 			
 			
 			ArrayList<Laser> explosion = new ArrayList<Laser>();				// Make a death explosion! (could abstract this if I add more effects)
@@ -273,24 +285,41 @@ public class RunState implements GameState {
 		}
 		
 		
-		////////////////////////////////////////////////////////////////////
-		// Check remaining lives
-		if(data.getLives() < 0) {
-			if(!game_over) {	// You've had your chips!						// Create the "Game Over" state
+		///////////////////////////////////////////////////////////////////////
+		// Check Win/Loose conditions
+		long elapsed = (System.currentTimeMillis() - data.getStartTime());
+		if(elapsed >= duration) {												// Are we Bi-Winning?
+			if(!game_won) {
 				spawner.stop();
-				engine.pushState(new GameOverState(data).init(engine));			//  and push it onto the stack
-				game_over = true;												//  - but only once!
+				data.setStartTime(0);
+				engine.pushState(new GameOverState(data).init(engine));			// GameOver state also handles winning
+				game_won = true;
 			}
 			
-			return DONE; 				// Return ship destroyed if last life (0) used
+			return DONE;
 		}
 		
 		
-		////////////////////////////////////////////////////////////////////
+		if(data.getLives() < 0) {
+			if(!game_over) {													// Game Over, man! Game over!
+				spawner.stop();
+				data.setStartTime(0);
+				engine.pushState(new GameOverState(data).init(engine));			// Create the "Game Over" state
+				game_over = true;												//  and push it onto the stack - but only once!
+			}
+			
+			return DONE; 														// Return ship destroyed if last life (0) used
+		}
+		
+
+		// Stuff after this line is not evaluated when game is won/lost
+		
+		
+		///////////////////////////////////////////////////////////////////////
 		// Keypress evaluation
 		Vector3f direction = new Vector3f(0,0,0);
 		
-		if (keydown_left && !keydown_right) {
+		if (keydown_left && !keydown_right) {									// Translate key presses into movement
 			direction = Vector3f.add(direction, Entity.LEFT, null);
 		} else if (keydown_right && !keydown_left) {
 			direction = Vector3f.add(direction, Entity.RIGHT, null);
@@ -305,17 +334,17 @@ public class RunState implements GameState {
 		ship.setDirection(direction);
 		
 		
-		////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
 		// Ship Updates
-		if( ship.update(delta) == DONE ) {			// Ship Updates: DONE if animation complete (respawn or game over)
-			data.decrementLives();					// Decrement lives
+		if( ship.update(delta) == DONE ) {										// Ship Updates: DONE if animation complete (respawn or game over)
+			data.decrementLives();												// Decrement lives
 			if(data.getLives() >= 0) {
-				ship = new Ship();		// Respawn ship
+				ship = new Ship();												// Respawn ship
 			} else {
 				state = PlayState.GAME_OVER;
 			}
 				
-			return SUCCESS;								// Don't do anything else this tick
+			return SUCCESS;														// Don't do anything else this tick
 		}
 
 		// Move the ship at correct (calculated) speed
@@ -323,7 +352,7 @@ public class RunState implements GameState {
 
 
 			
-		////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////
 		// Firing
 		if (fire) {
 			ship.fireLaser(ship_lasers);		// Ship lasers
@@ -334,6 +363,9 @@ public class RunState implements GameState {
 
 	
 	
+	/**************************************************************************
+	 * Render the game scene
+	 */
 	@Override
 	public int render() {
 
@@ -410,6 +442,9 @@ public class RunState implements GameState {
 
 
 
+	/**************************************************************************
+	 * Perform mouse input handling
+	 */
 	@Override
 	public void mouseInput(int mouse_x, int mouse_y, boolean leftDown, boolean rightDown) {
 		
@@ -421,11 +456,11 @@ public class RunState implements GameState {
 		float world_y = mouse_y / Globals.coord_ratio_y;
 		
 		// Calculate new ship orientation using trigonometry
-		double adjacent = world_x - ship.getPosition().x ;		// Width of triangle
-		double opposite = world_y + ship.getPosition().z ;		// Height of triangle
+		double adjacent = world_x - ship.getPosition().x ;						// Width of triangle
+		double opposite = world_y + ship.getPosition().z ;						// Height of triangle
 		
 		// TODO: consider how to do this without sqrt!
-		double hypotenuse = sqrt( pow(adjacent,2) + pow(opposite,2) );	// Pythagoras finds hyp
+		double hypotenuse = sqrt( pow(adjacent,2) + pow(opposite,2) );			// Pythagoras finds hyp
 		
 		double angle = asin(opposite / hypotenuse);
 		
@@ -440,8 +475,13 @@ public class RunState implements GameState {
 				angle = 2*PI + angle;
 		}								// else 1st quadrant (+ve +ve) no action
 		
-		// Get the unit vector of the angle and set it on the ship
-		ship.setOrientation(new Vector3f((float) cos(angle - PI/2), 0.0f, (float) sin(angle - PI/2)));
+		// Get the unit vector of the angle and set it on the shipda
+		ship.setOrientation(
+			new Vector3f(
+				(float) cos(angle - PI/2), 
+				0.0f, 
+				(float) sin(angle - PI/2)
+			));
 		
 //		System.out.println(
 //			  "_MOUSE   x:" + mouse_x + " y:" + mouse_y +
@@ -471,8 +511,7 @@ public class RunState implements GameState {
 		
 		if (Keyboard.getEventKeyState()) {
 
-			switch (key) {
-				// Movement key bindings
+			switch (key) {														// Movement key bindings
 			case Keyboard.KEY_LEFT:
 			case Keyboard.KEY_A:
 				keydown_left = true;
@@ -492,39 +531,32 @@ public class RunState implements GameState {
 			case Keyboard.KEY_SPACE:
 				fire = true;
 				break;
-
-				// Control key bindings
+			
+			// Control key bindings
 			case Keyboard.KEY_F3:
-				Hitbox.render = !Hitbox.render;			// Toggle hitbox rendering on/off
+				Hitbox.render = !Hitbox.render;									// Toggle hitbox rendering on/off
 				break;
-			case Keyboard.KEY_P:	// Fall through to KEY_F4
-			case Keyboard.KEY_F4:
-				camera.toggleLock();
+			case Keyboard.KEY_F4:												// Fall through to Pause
+			case Keyboard.KEY_P:
 				data.pause();
 				if(paused)
 					this.resume();
 				else
-					this.pause();						// Toggle pause for the bottom state
+					this.pause();												// Toggle pause for the bottom state
 				break;
-// Debug:
-//			case Keyboard.KEY_K:						// Set score to 0 to trigger "Game Over" message
-//				ship.setState(ShipState.DESTROYED);		// Destroy directly. Don't run destroy() animation
-//				ship.hide();
-//				data.setLives(0);
-//				break;
-//			case Keyboard.KEY_G:						// Toggle Insanity Mode on
-//				Globals.ship_fire_rate = 10;			//  Note: removed, broke too many minds. Make it a powerup instead!
-//				Globals.enemy_fire_rate = 10; 			//ms
-//				break;
-			case Keyboard.KEY_ESCAPE:					// Return to menu state
-//				data.reset(Globals.LIVES);
-				engine.stop();
+			case Keyboard.KEY_ESCAPE:											// Return to menu state
+				data.reset(Globals.LIVES);
+				engine.changeState(new MenuState(data).init(engine));
 				break;
+				
+			case Keyboard.KEY_END:												// I-win button for testing
+				data.setGameWon(true);
+				data.setStartTime(0);
 			default:
 				break;
 			}
 
-		} else {	// Key-up handling
+		} else {																// Key-up handling
 
 			switch (key) {
 			case Keyboard.KEY_LEFT:

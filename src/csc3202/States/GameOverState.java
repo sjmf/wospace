@@ -8,6 +8,7 @@ import static org.lwjgl.opengl.GL11.*;
 
 import org.lwjgl.input.Keyboard;
 import org.newdawn.slick.Color;
+import org.newdawn.slick.TrueTypeFont;
 import org.newdawn.slick.opengl.TextureImpl;
 
 import csc3202.Engine.*;
@@ -23,13 +24,14 @@ import csc3202.Engine.Interfaces.GameState;
 @SuppressWarnings("deprecation")
 public class GameOverState implements GameState {
 
-	private static final int NAME_LETTERS = 3;
+	private static final int NAME_LETTERS = 5;
 	
 	private static final String SCORE = "Score: ";
 	private static final String HIGH_SCORE = "New High Score: ";
 	private static final String GAME_OVER = "GAME OVER";
+	private static final String WIN_TEXT = "SONG COMPLETE";
 	private static final String ENTER_NAME = "Enter your Name:";
-	private static final String RESTART_MSG = "Press R or Fire to restart";
+	private static final String RESTART_MSG = "Press R to restart, or ESC to return to menu";
 	
 	private enum HighScoreStates {
 		NO_HIGH_SCORE,
@@ -38,15 +40,19 @@ public class GameOverState implements GameState {
 	};
 	
 	private HighScoreStates state;
-	private String death_message;
 	
-	private char[] name_chars = new char[3];
+	private char[] name_chars = new char[NAME_LETTERS];
 	private String name = "";
 	private int chars_entered = 0;
 	
 	private Engine engine;
 	
 	private GameData data;
+
+	private TrueTypeFont f18;
+	private TrueTypeFont f24;
+	private TrueTypeFont f36;
+	private TrueTypeFont f48;
 	
 	/**
 	 * Construct a GameOverState
@@ -62,15 +68,16 @@ public class GameOverState implements GameState {
 	public GameState init(Engine engine) {
 		
 		this.engine = engine;
-		
-    	int i = Engine.rand.nextInt(death_msgs.length);
-    	death_message = death_msgs[i];
     	
     	// High score checking and addition
     	if(data.getHighScores().isHighScore(data.getScore())) {
     		state = HighScoreStates.HS_NAME_ENTRY;
     	}
     	
+		f18 = FontManager.getManager().getFont(18f);
+		f24 = FontManager.getManager().getFont(24f);
+		f36 = FontManager.getManager().getFont(36f);
+    	f48 = FontManager.getManager().getFont(48f);
 		return this;
 	}
 	
@@ -117,7 +124,7 @@ public class GameOverState implements GameState {
 			glMatrixMode(GL_MODELVIEW);
 			String score = Integer.toString(data.getScore());
 			
-			TextureImpl.bindNone();								// Release bindings for other textures (i.e. models)
+			TextureImpl.bindNone();												// Release bindings for other textures (i.e. models)
 			glEnable(GL_TEXTURE_2D);
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -126,61 +133,55 @@ public class GameOverState implements GameState {
 			    glScalef(1.0f, -1.0f, 1.0f);
 				glTranslatef(0.0f, -Globals.window_height, 1.0f);
 				
-		    	FontManager.getManager().getFont(48f)					// DRAW TITLE "GAME OVER" TEXT
-		    		.drawString(
+				if(data.isGameWon()){
+					f48.drawString(												// DRAW TITLE "GAME OVER" TEXT
+		    				Globals.window_width/2 - (WIN_TEXT.length() * Globals.FONT_48PT / 2), 
+		    				Globals.window_height/2 - 80, 
+		    				WIN_TEXT, 
+		    				Color.orange
+		    			);
+				} else {
+					f48.drawString(												// DRAW TITLE "GAME OVER" TEXT
 		    				Globals.window_width/2 - (GAME_OVER.length() * Globals.FONT_48PT / 2), 
 		    				Globals.window_height/2 - 80, 
-		    				GAME_OVER, Color.red);
+		    				GAME_OVER, 
+		    				Color.orange
+		    			);
+				}
 		    	
-		    	
-		    	if(state == HighScoreStates.NO_HIGH_SCORE) {			// DRAW STATE WHEN NO NEW HS
+		    	if(state == HighScoreStates.NO_HIGH_SCORE) {					// DRAW STATE WHEN NO NEW HS
 		    		
-			    	FontManager.getManager().getFont(24f)
-			    		.drawString(
+		    		f24.drawString(
 			    				Globals.window_width/2 - ((SCORE.length() + score.length()) * Globals.FONT_24PT / 2), 
 			    				Globals.window_height/2, 
 			    				SCORE + data.getScore()
 			    			);
 			    	
-			    	FontManager.getManager().getFont(24f)				// DRAW DEATH MESSAGE
-			    		.drawString(
-			    				Globals.window_width/2 - (death_message.length() * FONT_24PT) /2, 
-			    				Globals.window_height/2 + 65, 
-			    				death_message, 
-			    				Color.green
-			    			);
-			    	
-		    	} else {	// DRAW HIGHSCORE NAME ENTRY STATE
-		    		
-		    		FontManager.getManager().getFont(24f)
-		    			.drawString(
+		    	} else {														// DRAW HIGHSCORE NAME ENTRY STATE
+		    		f24.drawString(
 			    				Globals.window_width/2 - ((HIGH_SCORE.length() + score.length()) * Globals.FONT_24PT / 2),
 		    					Globals.window_height/2, 
 		    					HIGH_SCORE + data.getScore()
 		    				);
 		    		
-			    	FontManager.getManager().getFont(24f)				// DRAW NAME ENTRY MESSAGE
-			    		.drawString(
+			    	f24.drawString(												// DRAW NAME ENTRY MESSAGE
 			    				Globals.window_width/2 - (ENTER_NAME.length() * FONT_24PT) /2, 
 			    				Globals.window_height/2 +40, 
 			    				ENTER_NAME, 
-			    				Color.green
+			    				Color.red
 			    			);
 			    	
-			    	FontManager.getManager().getFont(36f)				// DRAW NAME
-			    		.drawString(
+			    	f36.drawString(												// DRAW NAME
 			    				Globals.window_width/2 - (name.length() * FONT_36PT) /2, 
 			    				Globals.window_height/2 + 80, 
 			    				name
 			    			);
-			    	
 		    	}
 		    	
 		    	if( state == HighScoreStates.NO_HIGH_SCORE 
-		    			|| state == HighScoreStates.HS_WAITING ) {
-	
-			    	FontManager.getManager().getFont(18f)				// DRAW RESTART MESSAGE
-			    		.drawString(
+		    		|| state == HighScoreStates.HS_WAITING ) {
+			    	
+			    	f18.drawString(												// DRAW RESTART MESSAGE
 			    				Globals.window_width/2 - (RESTART_MSG.length() * FONT_18PT) /2, 
 			    				Globals.window_height/2 + 140, 
 			    				RESTART_MSG
@@ -210,13 +211,21 @@ public class GameOverState implements GameState {
 	
 //				System.out.println(index + "\t" + keyName + "\t" + isKeyLetter(index));
 				
-				if(isKeyLetter(index)) {						// Add to name array
+				if( index == Keyboard.KEY_RETURN ) {
+					chars_entered = NAME_LETTERS;
+				}
+				
+				if(isKeyLetter(index) || index == Keyboard.KEY_SPACE) {			
 					
-					name_chars[chars_entered] = keyName.charAt(0);
+					if(index != Keyboard.KEY_SPACE)
+						name_chars[chars_entered] = keyName.charAt(0);			// Get char from keyname
+					else
+						name_chars[chars_entered] = ' ';
+					
 					if(chars_entered < NAME_LETTERS)
 						chars_entered++;
 					
-				} else if( index == 14 || index == 211 ) {		// Backspace or DEL
+				} else if( index == 14 || index == 211 ) {						// Backspace or DEL
 
 					if(chars_entered > 0)
 						chars_entered--;
@@ -227,17 +236,16 @@ public class GameOverState implements GameState {
 		} else {
 			if(Keyboard.getEventKeyState()) {
 				switch(key) {
-					case Keyboard.KEY_RETURN: 	// Fall through to restart
+					case Keyboard.KEY_RETURN: 									// Fall through to restart
 					case Keyboard.KEY_SPACE:
-					case Keyboard.KEY_R:		// Restart
+					case Keyboard.KEY_R:										// Restart
 						data.reset(Globals.LIVES);
-						engine.changeState(new RunState(data).init(engine));		// Push new states
+						engine.changeState(new RunState(data).init(engine));	// Push new states
 						engine.pushState(new OverlayState(data).init(engine));
 						break;
-					case Keyboard.KEY_ESCAPE:				// Return to menu state
+					case Keyboard.KEY_ESCAPE:									// Return to menu state
 						data.reset(Globals.LIVES);
 						engine.changeState(new MenuState(data).init(engine));
-						engine.pushState(new OverlayState(data).init(engine));
 						break;
 					default:
 						break;
@@ -255,7 +263,7 @@ public class GameOverState implements GameState {
 	 */
 	private boolean isKeyLetter(int id) {
 		
-		return ( (id >= 16 && id <= 25)
+		return (   (id >= 16 && id <= 25)
 				|| (id >= 30 && id <= 38)
 				|| (id >= 44 && id <=50) );
 	}

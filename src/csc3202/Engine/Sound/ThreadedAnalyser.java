@@ -55,10 +55,14 @@ public class ThreadedAnalyser {
 	    
 		@Override
 		public void run() {
-			System.out.println("Audio Analysis thread started");
+			System.out.println(">> Analyser thread started");
 			
 			setChanged();
 			events = new AudioEventResponse(Analyser.run(analyser, filename));
+			if(events == null) {
+				System.err.println("Oh no! Analyser returned null!");
+				System.exit(1);
+			}
 			notifyObservers(events);
 		}
 		
@@ -95,7 +99,7 @@ public class ThreadedAnalyser {
 		
 		want_plugins = new ArrayList<String>();
 		
-		want_plugins.add(Analyser.BEAT_PLUGIN);					// Add plugins to test
+//		want_plugins.add(Analyser.BEAT_PLUGIN);					// Add plugins to test
 		want_plugins.add(Analyser.AMP_PLUGIN);
 		
 		analyser = new Analyser(want_plugins);		
@@ -110,7 +114,7 @@ public class ThreadedAnalyser {
 	public void start() {
 		runner = new Thread(aSource);
         runner.start();
-//        runner.setPriority( Thread.NORM_PRIORITY + 2 ); 
+        runner.setPriority( Thread.MAX_PRIORITY - 2 ); 
 	}
 	
 	/** Interrupt file analysis **/

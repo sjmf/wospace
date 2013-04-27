@@ -37,13 +37,13 @@ public class Ship extends Entity implements Collidable {
 	private ShipState state = ShipState.INVINCIBLE;
 
 	// Durations
-	private long spawn_time;					// For invincible period after spawn
+	private long spawn_time;							// For invincible period after spawn
 	private long last_fired;
-	private int fire_rate = 440;				// Fire rate for powerups
+	private int fire_rate = Globals.SHIP_FIRE_RATE;		// Powerups can increase rate of fire
 	
-	private long powerup_time = 0l;				// Timer for powerup duration
+	private long powerup_time = 0l;						// Timer for powerup duration
 	
-	private static final float GUN_OFFSET = 8f;	// The offset of the guns on the model
+	private static final float GUN_OFFSET = 8f;			// The offset of the guns on the model
 	
 	private float theta;
 	
@@ -77,7 +77,7 @@ public class Ship extends Entity implements Collidable {
 		
 		long time = System.currentTimeMillis();
 		
-		if(time > last_fired + (int)(fire_rate * Globals.fire_speed)) {
+		if(time > last_fired + (int)(fire_rate)) {
 			
 			// TWO (yes TWO!) laser stacks for additional pew pew
 			Laser l = null;
@@ -170,7 +170,7 @@ public class Ship extends Entity implements Collidable {
 	public int move(float delta) {
 
 //		System.out.println("\nPosition:\t" + this.getPosition() + "\n\tOrientation:\t" + this.getOrientation() + "\n\t\tDirection:\t" + this.getDirection());
-				
+		
 		if(state == ShipState.DESTROYED) 
 			return DONE;
 		
@@ -251,7 +251,7 @@ public class Ship extends Entity implements Collidable {
 	 */
 	public void powerUp() {
 		powerup_time = System.currentTimeMillis();
-		this.fire_rate = POWERUP_FIRE_RATE;
+		this.fire_rate = Globals.POWERUP_FIRE_RATE;
 	}
 
 

@@ -23,7 +23,7 @@ import org.vamp_plugins.PluginLoader.LoadFailedException;
  */
 public class Analyser {
 	
-	public static final String BEAT_PLUGIN = "qm-vamp-plugins:qm-barbeattracker";
+//	public static final String BEAT_PLUGIN = "qm-vamp-plugins:qm-barbeattracker";
 	public static final String AMP_PLUGIN =  "vamp-example-plugins:amplitudefollower";
 	
 	/** Exception thrown when analysis fails, for whatever reason */
@@ -163,7 +163,8 @@ public class Analyser {
 	/**
 	 * Analyse an audio stream and return a feature in a more accessible format
 	 *  
-	 * @param featureIndex  Feature Map index to return. We don't care about other features. Make damn sure to get it right, or you'll get nothing back.
+	 * @param featureIndex  Feature Map index to return. We don't care about other features. 
+	 * 						Make damn sure to get it right, or you'll get nothing back.
 	 * @param p             Plugin to use for analysis. Only two have been tested.
 	 * @param format        AudioFormat containing data about the stream
 	 * @param audioIn       Signed PCM 16-bit AudioInputStreams
@@ -222,10 +223,10 @@ public class Analyser {
 			addToEventList(result, temp, featureIndex, framesize);
 //			printFeatures(temp);
 		    p.dispose();
+			return result;
 		}
 		
-		
-		return result;
+		return null;
 	}
 
 
@@ -417,18 +418,45 @@ public class Analyser {
 				String id = p.getIdentifier();
 
 				BeatFile bf = new BeatFile( filename, id, null );
-
+				BeatFile bf_new = null; 
+				
 				// Only call analyse stream if we didn't find a cached BeatFile
+				boolean read = false;
 				if( bf.isCached() ) {
-					bf.read();
-					System.out.println("BeatCache Read from File");
-				} 
-				else {
+					
+					bf_new = BeatFile.read(bf.makePath());
+					
+					if(bf_new != null) {
+						read = true;
+						bf = bf_new;
+						System.out.println("BeatCache Read from File");
+					}
+				}
+				
+				if( ! read ) { 
+					// Analyse file
 					bf.setEvents( a.analyseStream(0, p, 
 									mp3.getDecodedFormat(), 
 									mp3.getAudioIn()));
-					bf.write();
+					
+					bf.setArtist(mp3.getArtist());
+					bf.setTitle(mp3.getTitle());
+					bf.setDuration(mp3_duration / 1000);
+					
+					// Calc extra values for amplitude
+					if(id.equals("amplitudefollower")) {
+						bf.calcPeak();
+						bf.calcAvg();
+					}
+					
+					if(bf.getEvents() != null)
+						BeatFile.write(bf);
+					else {
+						System.out.println("Interrupted!");
+						return null;
+					}
 				}
+				
 				beats.add(bf);
 				
 				long duration = System.nanoTime() - startTime;

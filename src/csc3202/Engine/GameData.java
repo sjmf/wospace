@@ -31,7 +31,7 @@ public class GameData {
 	/** Whether the game is won (which gameover state to display) **/
 	private boolean win = false;
 	
-	/** The file to run music analysis on for runstate values **/
+	/** The file to run music analysis on **/
 	private String mp3file = null;
 	
 	/** Music analysis result */
@@ -81,6 +81,14 @@ public class GameData {
 		this.lives = lives;
 	}
 
+	public long getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(long startTime) {
+		this.startTime = startTime;
+	}
+
 	public boolean isPaused() {
 		return paused;
 	}
@@ -111,13 +119,5 @@ public class GameData {
 
 	public void setAnalysis(List<BeatFile> result) {
 		this.analysis = result;
-	}
-
-	public long getStartTime() {
-		return startTime;
-	}
-
-	public void setStartTime(long startTime) {
-		this.startTime = startTime;
 	}
 }

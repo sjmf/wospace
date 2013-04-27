@@ -92,8 +92,10 @@ public class LoaderState implements GameState {
 		preload(engine);					// Start loadin' models & textures
 		
 		// Display "loading" while pre-loading models
-		if(OBJManager.getManager().isLoaded()) {
+		if(OBJManager.getManager().isLoaded() && analysis_finished) {
 			OBJManager.getManager().useDisplayLists();
+
+			data.setAnalysis(analyser.getResult());
 			
 			// Push initial game states onto the stack maintained by Engine
 			engine.changeState(new RunState(data).init(engine));
@@ -103,53 +105,6 @@ public class LoaderState implements GameState {
 			
 			return SUCCESS;
 		}
-		
-		return SUCCESS;
-	}
-
-
-	/**
-	 * Render the loader
-	 */
-	@SuppressWarnings("deprecation")
-	@Override
-	public int render() {
-		
-		glPushAttrib(GL_DEPTH_BUFFER_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
-		
-		glMatrixMode(GL_PROJECTION);
-		glPushMatrix();
-			engine.set2D();
-			
-			glMatrixMode(GL_MODELVIEW);
-			
-			glDisable(GL_DEPTH_TEST);
-		    glEnable(GL_TEXTURE_2D);
-		    glEnable(GL_BLEND);
-		    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		    
-			glPushMatrix();
-				glScalef(1.0f, -1.0f, 1.0f);
-				glTranslatef(0.0f, -Globals.window_height, 1.0f);
-				
-				FontManager.getManager().getFont(48f)
-					.drawString(Globals.window_width/2 - (TEXT.length() * Globals.FONT_48PT / 2), 
-								(Globals.window_height / 2) - 65f, TEXT, Color.green);
-				
-				FontManager.getManager().getFont(24f)
-					.drawString(Globals.window_width/2 - (loadbar.toString().length() * Globals.FONT_24PT / 2), 
-								(Globals.window_height / 2), loadbar.toString(), Color.red);
-				
-				FontManager.getManager().getFont(18f)
-				.drawString(Globals.window_width/2 - (next_resource.toString().length() * Globals.FONT_18PT / 2), 
-							(Globals.window_height / 2) + 50f, next_resource.toString(), Color.white);
-				
-			glPopMatrix();
-
-			glMatrixMode(GL_PROJECTION);
-		glPopMatrix();
-		
-		glPopAttrib();
 		
 		return SUCCESS;
 	}
@@ -165,7 +120,7 @@ public class LoaderState implements GameState {
 	 * 
 	 * Other threads should check .isLoaded() for status
 	 */
-	public void preload(Engine engine) {
+	private void preload(Engine engine) {
 		
 		if(skip_first) {
 
@@ -199,15 +154,67 @@ public class LoaderState implements GameState {
 		// Analyse Music
 		analysis_finished = analyser.resultAvailable();
 		
+		// Reduce load from OpenGL thread so that the analyser gets more CPU time
+		// This actually works!
+		try {
+			Thread.sleep(200);				// 5fps max
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}	
+		
 		// Do this only when everything is loaded
 		if(models_loaded >= MODELS.length && analysis_finished) {
-			
-			data.setAnalysis(analyser.getResult());
-			
 			OBJManager.getManager().setLoaded();
 		} else {
 			incrementLoadBar();
 		}
+	}
+
+
+	/**
+	 * Render the loader
+	 */
+	@SuppressWarnings("deprecation")
+	@Override
+	public int render() {
+		
+		glPushAttrib(GL_DEPTH_BUFFER_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
+		
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+			engine.set2D();
+			
+			glMatrixMode(GL_MODELVIEW);
+			
+			glDisable(GL_DEPTH_TEST);
+		    glEnable(GL_TEXTURE_2D);
+		    glEnable(GL_BLEND);
+		    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		    
+			glPushMatrix();
+				glScalef(1.0f, -1.0f, 1.0f);
+				glTranslatef(0.0f, -Globals.window_height, 1.0f);
+				
+				FontManager.getManager().getFont(48f)
+					.drawString(Globals.window_width/2 - (TEXT.length() * Globals.FONT_48PT / 2), 
+								(Globals.window_height / 2) - 65f, TEXT, Color.orange);
+				
+				FontManager.getManager().getFont(24f)
+					.drawString(Globals.window_width/2 - (loadbar.toString().length() * Globals.FONT_24PT / 2), 
+								(Globals.window_height / 2), loadbar.toString(), Color.red);
+				
+				FontManager.getManager().getFont(18f)
+				.drawString(Globals.window_width/2 - (next_resource.toString().length() * Globals.FONT_18PT / 2), 
+							(Globals.window_height / 2) + 50f, next_resource.toString(), Color.white);
+				
+			glPopMatrix();
+
+			glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
+		
+		glPopAttrib();
+		
+		return SUCCESS;
 	}
 
 	
