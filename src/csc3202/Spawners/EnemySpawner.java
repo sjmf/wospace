@@ -1,7 +1,7 @@
 /**
  * 
  */
-package csc3202.Engine.AI;
+package csc3202.Spawners;
 
 import static csc3202.Engine.Globals.*;
 
@@ -10,6 +10,8 @@ import java.util.Random;
 import org.lwjgl.util.vector.Vector3f;
 
 import csc3202.Engine.Globals;
+import csc3202.Engine.Utils;
+import csc3202.Engine.AI.Spawner;
 import csc3202.Engine.Interfaces.Entity;
 import csc3202.Entities.Enemy;
 
@@ -17,15 +19,13 @@ import csc3202.Entities.Enemy;
  * @author sam
  *
  */
-public class RandomSpawner extends Spawner {
+public class EnemySpawner extends Spawner {
 
 	/** Pseudorandom generator for enemy position on screen edge */
 	private Random rand;
-	
-    private volatile boolean running = true;
     
     /** Observer pattern spawner class  */
-	public RandomSpawner() {
+	public EnemySpawner() {
 		rand = new Random();
 	}
 
@@ -34,7 +34,7 @@ public class RandomSpawner extends Spawner {
 	 */
 	@Override
 	public void run() {
-		System.out.println(">> Spawner thread started");
+		System.out.println(">> Enemy Spawner thread started");
 		
 		while (running) {
 			try {
@@ -42,20 +42,16 @@ public class RandomSpawner extends Spawner {
 				setChanged();
 				notifyObservers(makeEnemies());		// Don't mind me, just making enemies...
 				
-				Thread.sleep(Globals.spawn_rate);	// In a music-based game, this is set by beats
+				Thread.sleep(Globals.spawn_rate);	// Set by beats?
 			} catch (InterruptedException e) {
 				System.err.println(e.getMessage());
 			}
 		}
-		System.out.println("<< Spawner thread exit");
+		System.out.println("<< Enemy Spawner thread exit");
 	}
 	
 	
-	/* (non-Javadoc)
-	 * @see Engine.AI.Spawner#makeEnemy()
-	 */
-	@Override
-	public Enemy[] makeEnemies() {
+	private Enemy[] makeEnemies() {
 	
 		Enemy e = new Enemy();
 		
@@ -68,7 +64,7 @@ public class RandomSpawner extends Spawner {
 		switch(side) {
 		case 0:			// From top
 			e.setDirection((Vector3f)  Vector3f.add(
-					cloneVec3(Entity.DOWN),
+					Utils.cloneVec3(Entity.DOWN),
 					new Vector3f((rand.nextFloat()-0.5f), 0, 0),
 					null).scale(Globals.ENEMY_SPEED));
 			
@@ -78,7 +74,7 @@ public class RandomSpawner extends Spawner {
 			break;
 		case 1:		// From bottom
 			e.setDirection( (Vector3f) Vector3f.add(
-					cloneVec3(Entity.UP),
+					Utils.cloneVec3(Entity.UP),
 					new Vector3f((rand.nextFloat()-0.5f), 0, 0),
 					null).scale(Globals.ENEMY_SPEED));
 			
@@ -88,7 +84,7 @@ public class RandomSpawner extends Spawner {
 			break;
 		case 2:		// From left
 			e.setDirection( (Vector3f) Vector3f.add(
-					cloneVec3(Entity.RIGHT),
+					Utils.cloneVec3(Entity.RIGHT),
 					new Vector3f(0, 0, (rand.nextFloat()-0.5f)),
 					null).scale(Globals.ENEMY_SPEED));
 			
@@ -98,7 +94,7 @@ public class RandomSpawner extends Spawner {
 			break;
 		case 3:					// From right
 			e.setDirection( (Vector3f) Vector3f.add(
-					cloneVec3(Entity.LEFT),
+					Utils.cloneVec3(Entity.LEFT),
 					new Vector3f(0, 0, (rand.nextFloat()-0.5f)),
 					null).scale(Globals.ENEMY_SPEED));
 			
@@ -116,9 +112,4 @@ public class RandomSpawner extends Spawner {
 		
 		return new Enemy[]{e};
 	}
-
-	@Override
-	public void stop() {
-		running = false;
-	};
 }

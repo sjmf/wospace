@@ -44,7 +44,7 @@ public class Analyser {
 	 * but the bar and beat tracker needs to be divided by 4. Set this to true
 	 * to divide timestamps by the frame size.
 	 */
-	public static boolean framesize_hack = true;
+	public static boolean framesize_hack = false;
 	
 	private static final int sampleRate = 44100;	// For purposes of this class, this will always be 44.1KHz (WAV)
 	

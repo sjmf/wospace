@@ -2,7 +2,6 @@ package csc3202;
 
 import csc3202.Engine.Engine;
 import csc3202.Engine.GameData;
-import csc3202.Engine.Globals;
 import csc3202.States.MenuState;
 
 
@@ -24,7 +23,7 @@ class Main {
 	 */
 	public static void main(String[] args) throws Exception {
 		
-		GameData data = new GameData(Globals.LIVES);							// Initialise a GameData object to handle score and lives
+		GameData data = new GameData();											// Initialise a GameData object to handle score and lives
 		Engine engine = new Engine();											// Load data and set-up state
 		
 		engine.pushState(new MenuState(data));									// Push LoaderState to load states when resources are done loading

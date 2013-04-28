@@ -1,14 +1,17 @@
 package csc3202.Engine.AI;
-/**
- * Write a runnable enemy spawner with this interface
- */
 
 import java.util.Observable;
 
-import csc3202.Entities.Enemy;
-
-
+/**
+ * Write a runnable spawner with this interface and
+ * pass the implementation to SpawnController to use it
+ * 
+ * @author sam
+ * @version Apr 13
+ */
 public abstract class Spawner extends Observable implements Runnable {
+	
+    protected volatile boolean running = true;
 
 	/* 
 	 * @see java.lang.Runnable#run()
@@ -19,12 +22,7 @@ public abstract class Spawner extends Observable implements Runnable {
 	/**
 	 * Stop spawning enemies
 	 */
-	public abstract void stop();
-	
-	/**
-	 * Spawn an enemy or two.
-	 * Override this method in a class and define custom behaviour
-	 */
-	public abstract Enemy[] makeEnemies();
-
+	public void stop() {
+		running = false;
+	}
 }

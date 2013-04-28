@@ -6,6 +6,7 @@ import static csc3202.Engine.Globals.*;
 
 import csc3202.Engine.Globals;
 import csc3202.Engine.Hitbox;
+import csc3202.Engine.Utils;
 import csc3202.Engine.Interfaces.Collidable;
 import csc3202.Engine.Interfaces.Entity;
 import csc3202.Engine.OBJLoader.OBJManager;
@@ -22,7 +23,7 @@ import org.lwjgl.util.vector.Vector3f;
  * @author a9134046 - Sam Mitchell Finnigan
  * @version Oct 2012
  */
-public class Ship extends Entity implements Collidable {
+public class Ship extends Entity {
 
 	public enum ShipState {
 		OK,
@@ -97,13 +98,13 @@ public class Ship extends Entity implements Collidable {
 			r = new Laser(new Vector3f(x_r, 0, y_l));
 			
 			l.colour(255.0f, 0.0f, 0.0f);
-			l.setDirection((Vector3f) invertVec3(this.getOrientation()).scale(LASER_SPEED));
-			l.setOrientation(invertVec3(this.getOrientation()));
+			l.setDirection((Vector3f) Utils.invertVec3(this.getOrientation()).scale(LASER_SPEED));
+			l.setOrientation(Utils.invertVec3(this.getOrientation()));
 			lasers.add( l );
 			
 			r.colour(255.0f, 0.0f, 0.0f);
-			r.setDirection((Vector3f) invertVec3(this.getOrientation()).scale(LASER_SPEED));
-			r.setOrientation(invertVec3(this.getOrientation()));
+			r.setDirection((Vector3f) Utils.invertVec3(this.getOrientation()).scale(LASER_SPEED));
+			r.setOrientation(Utils.invertVec3(this.getOrientation()));
 			lasers.add( r );
 			
 			last_fired = time;
@@ -143,11 +144,10 @@ public class Ship extends Entity implements Collidable {
 	public int update(long delta) {
 		
 		theta = (float) Math.atan2(this.getOrientation().z, this.getOrientation().x);
-		
-		if(System.currentTimeMillis() > powerup_time + POWERUP_DURATION) {
+	
+		if(System.currentTimeMillis() > powerup_time + POWERUP_DURATION) {		// Reset powerup after powerup time expires
 			fire_rate = SHIP_FIRE_RATE;
 		}
-			
 		
 		if(state == ShipState.INVINCIBLE) {
 			long time = System.currentTimeMillis();
@@ -167,7 +167,7 @@ public class Ship extends Entity implements Collidable {
 	
 
 	@Override
-	public int move(float delta) {
+	public int move(long delta) {
 
 //		System.out.println("\nPosition:\t" + this.getPosition() + "\n\tOrientation:\t" + this.getOrientation() + "\n\t\tDirection:\t" + this.getDirection());
 		
@@ -176,13 +176,19 @@ public class Ship extends Entity implements Collidable {
 		
 		// calculate new movement using vector- if in bounds, apply it
 		Vector3f oldPos = this.getPosition();
-		this.setPosition(Vector3f.add(this.getPosition(), (Vector3f) this.getDirection().scale(delta), null));
+		this.setPosition(
+				Vector3f.add(
+						this.getPosition(), 
+						(Vector3f) this.getDirection().scale(SHIP_SPEED * delta), 
+						null
+					));
 		
-		// Check new collision- move back if out of bounds
+		// Check new collision- do not apply if out of bounds
 		if(! Hitbox.checkCollision(this.getHitbox(), FIELD_HITBOX)) {
 			this.setPosition(oldPos);
 			return DONE;
 		}
+		
 		return SUCCESS;
 	}
 	
@@ -202,11 +208,10 @@ public class Ship extends Entity implements Collidable {
         	  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);	// Debug
           }
 		}
-			
 		
 		glPushMatrix();
 			glTranslatef(this.getPosition().x, this.getPosition().y, this.getPosition().z);
-			glRotatef(180, 0, 1, 0);		// Model is facing outwards, not towards Z+
+			glRotatef(180, 0, 1, 0);				// Model is facing outwards, not towards Z+
 			glRotatef(theta * RAD, 0, 1, 0);		// Rotate to face mouse
 			this.getModel().render();
 		glPopMatrix();
@@ -224,7 +229,7 @@ public class Ship extends Entity implements Collidable {
 	@Override
 	public int destroy() {
 		state = ShipState.DESTROYED;
-
+		this.fire_rate = Globals.SHIP_FIRE_RATE;
 		return SUCCESS;
 	}
 	
@@ -235,15 +240,6 @@ public class Ship extends Entity implements Collidable {
 	public int getFireRate() {
 		return fire_rate;
 	}
-
-
-
-	/**
-	 * @param fire_rate the fire_rate to set
-	 */
-	public void setFireRate(int fire_rate) {
-		this.fire_rate = fire_rate;
-	}
 	
 	
 	/**
@@ -251,7 +247,10 @@ public class Ship extends Entity implements Collidable {
 	 */
 	public void powerUp() {
 		powerup_time = System.currentTimeMillis();
-		this.fire_rate = Globals.POWERUP_FIRE_RATE;
+		if(this.fire_rate > Globals.SHIP_MAX_FIRE_RATE)
+			this.fire_rate -= Globals.POWERUP_FIRE_RATE_INC;
+		
+		System.out.println(this.fire_rate);
 	}
 
 

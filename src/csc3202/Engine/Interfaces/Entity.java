@@ -1,8 +1,13 @@
 package csc3202.Engine.Interfaces;
 
+import static csc3202.Engine.Globals.DONE;
+import static csc3202.Engine.Globals.SUCCESS;
+
 import org.lwjgl.util.vector.Vector3f;
 
+import csc3202.Engine.Globals;
 import csc3202.Engine.Hitbox;
+import csc3202.Engine.Utils;
 import csc3202.Engine.OBJLoader.OBJModel;
 
 /**
@@ -18,10 +23,10 @@ import csc3202.Engine.OBJLoader.OBJModel;
  * @author a9134046 - Sam Mitchell Finnigan
  * @version Apr 13
  */
-public abstract class Entity {
+public abstract class Entity implements Collidable {
 	
 	/**
-	 * Some static direction definitions
+	 * Some static direction definitions for convenience
 	 */
 	public static final Vector3f NONE = new Vector3f(0,0,0);
 	public static final Vector3f ZERO = NONE;
@@ -38,6 +43,7 @@ public abstract class Entity {
 	
 	/** Model Loaded from file **/
 	private OBJModel model;
+	
 	
 	/**
 	 * The direction in which an object (Entity, etc) is moving across the screen
@@ -69,6 +75,7 @@ public abstract class Entity {
 	 * Sometimes called from the constructor
 	 */
 	public Entity() {
+		
 		direction = new Vector3f();
 		position = new Vector3f();
 		orientation = new Vector3f();
@@ -92,10 +99,31 @@ public abstract class Entity {
 	
 	/**
 	 * Move Entity in its set direction by distance.
-	 * The direction to move is managed by the entity implementation 
+	 * This default implementation is provided but should be overriden if more
+	 *  complex movement code is required.
+	 *  
 	 * @return SUCCESS if OK, DONE if object has been destroyed
 	 */
-	public abstract int move(float distance);
+	public int move(long delta) {
+
+		// calculate new position using vector
+		Vector3f position = Vector3f.add(
+				this.getPosition(),
+				(Vector3f) Utils.cloneVec3(this.getDirection())
+					.scale(delta * Globals.game_speed), 
+				null
+			);
+
+		// Check new position is within field bounds (or if it is moving towards the field)
+		if((! Hitbox.checkCollision(this.getHitbox(), Globals.FIELD_HITBOX))
+			&& (! Utils.movingTowardsField(this))) {
+				return DONE;			// Moving away from field, destroy.
+		}
+	
+		this.setPosition(position);		// Else apply the updated position
+		return SUCCESS;
+	}
+	
 	
 	
 	/**
@@ -107,6 +135,7 @@ public abstract class Entity {
 		if(this.hit != null)
 			this.hit.setPosition(position);
 	}
+	
 	
 	public Vector3f getPosition() {
 		return position;
@@ -120,6 +149,7 @@ public abstract class Entity {
 		this.direction = direction;
 	}
 	
+	
 	public Vector3f getDirection() {
 		return direction;
 	}
@@ -131,6 +161,7 @@ public abstract class Entity {
 	public void setOrientation(Vector3f orientation) {
 		this.orientation = orientation;
 	}
+	
 	
 	public Vector3f getOrientation() {
 		return orientation;
@@ -145,9 +176,14 @@ public abstract class Entity {
 		this.hit = hit;
 	}
 
-
+	@Override
 	public Hitbox getHitbox() {
 		return hit;
+	}
+	
+	@Override
+	public boolean collides(Collidable c) {
+		return Hitbox.checkCollision(getHitbox(), c.getHitbox());
 	}
 
 

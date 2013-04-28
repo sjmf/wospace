@@ -1,6 +1,5 @@
 package csc3202.Engine;
 
-import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
 
@@ -25,7 +24,7 @@ public class Globals {
 	// Window dimensions
 	// Display holders used by many classes
 	public static final int FIELD_WIDTH = 600;									// Playing-field size
-	public static final int FIELD_HEIGHT = 320;
+	public static final int FIELD_HEIGHT = 330;
 	public static final Hitbox FIELD_HITBOX = 									// 2 hours debugging.
 			new Hitbox( new Vector3f(0, -10, -FIELD_HEIGHT),					// Order is sodding important.
 						new Vector3f(FIELD_WIDTH,0,0));							// I'm not bitter.
@@ -41,13 +40,9 @@ public class Globals {
 
 	public static final String WINDOW_TITLE = "Waste Of Space (pre-alpha)";
 	
-	// Files to read/write
+	// File to read/write
 	public static final String HIGH_SCORE_FILE = "res/scores.txt";
-	public static final String DEATH_MSG_FILE = "res/deathmessages.txt";
-	
-	// Game-over quotes
-	public static String[] death_msgs = { "You lose!" };
-	
+		
 	
 	// Font properties for centering text
 	public static final float FONT_48PT = 24.0f;								// More or less?
@@ -82,41 +77,33 @@ public class Globals {
 	
 	
 	// Ship data
-	public static final int LIVES = 99;
-	public static final int SHIP_FIRE_RATE = 100;								// ms
-	public static final int POWERUP_FIRE_RATE = 20;								// ms
-	public static final int POWERUP_DURATION = 8000;							// ms
+	public static final int LIVES = 3;
+	public static final int SHIP_FIRE_RATE = 120;								// ms
+	public static final int SHIP_MAX_FIRE_RATE= 40;
+	public static final int POWERUP_FIRE_RATE_INC = 40;							// decrease ship fire delay by 20ms
+	public static final int POWERUP_SPAWN_RATE = 20000;							// ms
+	public static final int POWERUP_DURATION = 10000;							// 10 s
 	public static final long INVINCIBILITY_FLASH_DURATION = 500;				// 1/2 second
 	public static final long INVINCIBILITY_DURATION = 3000;						// 4 seconds
 	public static final float SHIP_SPEED = 0.15f;
 	public static final float LASER_SPEED = 0.3f;
 	public static final float SHIP_VELOCITY_INC = 0.01f;
+	public static final int BOMBS_INITIAL_SUPPLY = 1;
+	public static final int MAX_BOMBS = 4;
 	
 	
 	// Entity model paths
 	public static final String ENEMY_MODEL_PATH =  "res/models/box.obj";
 	public static final String LASER_MODEL_PATH = "res/models/laser.obj";
 	public static final String SHIP_MODEL_PATH = "res/models/ship.obj";
+	public static final String BOMB_MODEL_PATH = "res/models/bomb.obj";
+	public static final String POWERUP_MODEL_PATH = "res/models/power.obj";
+	
 	
 	// Base game speed by which others are multiplied
 	public static volatile float game_speed = 0f;
 	public static volatile long spawn_rate = 500l;	// Spawn threadsleep
 
-	public static final Vector3f cloneVec3(Vector3f vector) {
-		return new Vector3f(vector.x, vector.y, vector.z);
-	}
-	
-	public static final Vector2f cloneVec2(Vector2f vector) {
-		return new Vector2f(vector.x, vector.y);
-	}
-	
-	public static final Vector3f invertVec3(Vector3f vector) {
-		return new Vector3f(-vector.z, -vector.y, -vector.x);
-	}
-	
-	public static final float normalise(float e, float e_min, float e_max) {
-		return (e - e_min) / (e_max - e_min);
-	}
 	
 	// Not meaningful to instantiate this class
 	private Globals() {}

@@ -2,10 +2,8 @@ package csc3202.States;
 
 import static csc3202.Engine.Globals.*;
 import static org.lwjgl.opengl.GL11.*;
-import static java.lang.Math.*;
 
-import csc3202.Engine.AI.EnemySpawner;
-import csc3202.Engine.AI.RandomSpawner;
+import csc3202.Engine.AI.SpawnControl;
 import csc3202.Engine.AI.SpeedControl;
 import csc3202.Engine.*;
 import csc3202.Engine.Interfaces.Entity;
@@ -14,12 +12,15 @@ import csc3202.Engine.OBJLoader.OBJManager;
 import csc3202.Engine.OBJLoader.OBJModel;
 import csc3202.Engine.Sound.MP3ToPCM;
 import csc3202.Entities.*;
+import csc3202.Entities.Powerup.PType;
 import csc3202.Entities.Ship.ShipState;
+import csc3202.Spawners.*;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
 
@@ -56,6 +57,7 @@ public class RunState implements GameState {
 	private ArrayList<Laser> enemy_lasers;
 	private ArrayList<Enemy> enemies;
 	private ArrayList<Enemy> destroyed_enemies;
+	private ArrayList<Powerup> powerups;
 
 	// The player ship
 	private Ship ship;
@@ -66,6 +68,8 @@ public class RunState implements GameState {
 	private boolean keydown_up = false;
 	private boolean keydown_down = false;
 	private boolean fire = false;
+	private boolean bomb = false;
+	private boolean bombed = true;
 
 	// Is the game paused?
 	private boolean paused = false;
@@ -80,7 +84,8 @@ public class RunState implements GameState {
 
 	// Audio stuff probably needs to be abstracted to another class or even thread
 	private MP3ToPCM mp3;
-	private EnemySpawner spawner;
+	private SpawnControl<Enemy> enemySpawner;
+	private SpawnControl<Powerup> powerupSpawner;
 	private SpeedControl speedcont;
 	
 	
@@ -91,7 +96,6 @@ public class RunState implements GameState {
 		
 		this.data = data;
 		this.mp3 = new MP3ToPCM(data.getMp3File());
-		spawner = new EnemySpawner();
 		
 		// This is a consequence of sticking things in lists, not Maps. :/
 		// This will only iterate maximum twice so it's fine
@@ -116,7 +120,7 @@ public class RunState implements GameState {
 		this.camera = new Camera();
 		
 		// Set up camera (deep copy vector so it doesn't get messed up when the camera moves)
-		camera.setCameraPos(cloneVec3(topdown_xyz), cloneVec3(topdown_pyr));
+		camera.setCameraPos(Utils.cloneVec3(topdown_xyz), Utils.cloneVec3(topdown_pyr));
 		camera.lock();
 		
 		
@@ -124,22 +128,28 @@ public class RunState implements GameState {
 		OBJModel enemy_model = OBJManager.getManager().getModel(Globals.ENEMY_MODEL_PATH);
 		enemy_model.setRot(new Vector3f(180,0,0));
 		
-		state = PlayState.STARTING; // Set state to starting state
+		state = PlayState.STARTING; 											// Set state to starting state
 		
 		// Discard old entity lists so we don't get duplicates
 		ship_lasers = new ArrayList<Laser>();
 		enemy_lasers = new ArrayList<Laser>();
 		enemies = new ArrayList<Enemy>();
 		destroyed_enemies = new ArrayList<Enemy>();
-
+		powerups = new ArrayList<Powerup>();
+		
 		// Create Ship
-		ship = new Ship();
-		ship.setState(ShipState.OK);	// Ship at beginning of round does not have timed invincibility buff
+		ship = new Ship();														// Ship at beginning of round does 
+		ship.setState(ShipState.OK);											//  not have timed invincibility buff
 		
 		data.setStartTime(System.currentTimeMillis());
 
-		// Launch threads:
-		spawner.start(new RandomSpawner());	// Start spawning enemies
+		// Launch threads for spawning entities:
+		enemySpawner = new SpawnControl<Enemy>();
+		enemySpawner.start(new EnemySpawner());									// Start spawning enemies
+		
+		powerupSpawner = new SpawnControl<Powerup>();
+		powerupSpawner.start(new PowerupSpawner());
+		
 		mp3.play();
 		speedcont.start();
 		
@@ -158,18 +168,15 @@ public class RunState implements GameState {
 	@Override
 	public int update(long delta) {
 		
-		if(state != PlayState.GAME_OVER)
-			camera.update(delta);
+//		if(state != PlayState.GAME_OVER)
+//			camera.update(delta);
 				
 		if (paused)
-			return WAIT; // Do nothing if paused
+			return WAIT; 														// Do nothing if paused
 			
 		
-		// Get new enemies
-		spawner.populate(enemies);
-		
-//		System.out.println(Globals.game_speed);
-		
+		enemySpawner.populate(enemies);											// Get new enemies
+		powerupSpawner.populate(powerups);
 		
 		
 		///////////////////////////////////////////////////////////////////////
@@ -221,6 +228,29 @@ public class RunState implements GameState {
 				laserRemoved = false;
 			}
 		}
+		
+		// Move on-screen powerups and check exit from arena bounds
+		Iterator<Powerup> pi = powerups.iterator();
+		while (pi.hasNext()) {
+			Powerup p = pi.next();
+			p.update(delta);
+			
+			if(ship.collides(p)) {												// Check ship/powerup collision
+				
+				if(p.getType() == PType.FIRERATE) {								// Collided with firerate powerup
+					ship.powerUp();
+				} else {														// with Bomb powerup
+					data.incBombs();
+				}
+				
+				data.incMultiplier();
+				
+				pi.remove();
+			}
+			else if (p.move(delta) == DONE) {
+				pi.remove();													// avoid ConcurrentModificationException
+			}
+		}
 
 		///////////////////////////////////////////////////////////////////////
 		// Ship collision check
@@ -262,27 +292,20 @@ public class RunState implements GameState {
 		
 		if (collided > 0) {
 			state = PlayState.DEFEATED;
-			ship.setDirection(cloneVec3(Entity.NONE));							// Workaround for ship continuing in direction on death
+			ship.setDirection(Utils.cloneVec3(Entity.NONE));					// Workaround for ship continuing in direction on death
 
 			ship.destroy();														// Call destroy on ship. Note that this only triggers the destruction animation.
 			
+			data.resetMultiplier();
 			
-			ArrayList<Laser> explosion = new ArrayList<Laser>();				// Make a death explosion! (could abstract this if I add more effects)
-			
-			float inc = (float) ((2 * Math.PI) / 64);							// Spawn 64 lasers (2^6)
-			for(int i=0; i<64; i++) {
-				float rad = i * inc; 											// Calculate rotation in radians
-				
-				Vector3f dir = new Vector3f((float) cos(rad - PI/2), 0.0f, (float) sin(rad - PI/2));
-				Laser l = new Laser(ship.getPosition());						// New Laser with position
-				l.setDirection((Vector3f) cloneVec3(dir).scale(LASER_SPEED));	// direction
-				l.setOrientation(dir);											// and orientation
-				l.colour(1.0f, 0.5f, 0f);
-				explosion.add(l);
-			}
-			
-			ship_lasers.addAll(explosion);
+			// Death explosion! (orange)
+			ship_lasers.addAll(Utils.makeExplosion(
+					ship.getPosition(), 
+					new Vector3f(1.0f, 0.5f, 0f)
+				));
 		}
+		
+		
 		
 		
 		///////////////////////////////////////////////////////////////////////
@@ -290,10 +313,12 @@ public class RunState implements GameState {
 		long elapsed = (System.currentTimeMillis() - data.getStartTime());
 		if(elapsed >= duration) {												// Are we Bi-Winning?
 			if(!game_won) {
-				spawner.stop();
+				enemySpawner.stop();
 				data.setStartTime(0);
+				data.setGameWon(true);
 				engine.pushState(new GameOverState(data).init(engine));			// GameOver state also handles winning
 				game_won = true;
+				state = PlayState.GAME_OVER;
 			}
 			
 			return DONE;
@@ -302,7 +327,7 @@ public class RunState implements GameState {
 		
 		if(data.getLives() < 0) {
 			if(!game_over) {													// Game Over, man! Game over!
-				spawner.stop();
+				enemySpawner.stop();
 				data.setStartTime(0);
 				engine.pushState(new GameOverState(data).init(engine));			// Create the "Game Over" state
 				game_over = true;												//  and push it onto the stack - but only once!
@@ -348,7 +373,7 @@ public class RunState implements GameState {
 		}
 
 		// Move the ship at correct (calculated) speed
-		ship.move(SHIP_SPEED * delta);
+		ship.move(delta);
 
 
 			
@@ -356,6 +381,19 @@ public class RunState implements GameState {
 		// Firing
 		if (fire) {
 			ship.fireLaser(ship_lasers);		// Ship lasers
+		}
+		
+
+		if(bomb && !bombed) {
+			if(data.getBombs() > 0) {
+				ship_lasers.addAll(
+					Utils.makeExplosion(
+							ship.getPosition(), 
+							new Vector3f(0.5f, 0.5f, 1.0f)
+						));
+				data.decBombs();
+			}
+			bombed = true;					// Latch function
 		}
 
 		return SUCCESS;
@@ -401,6 +439,9 @@ public class RunState implements GameState {
 				for(Enemy e : destroyed_enemies)
 					e.render();
 				
+				for(Powerup p : powerups)
+					p.render();
+				
 				FIELD_HITBOX.render();
 				
 			glPopMatrix();
@@ -425,8 +466,16 @@ public class RunState implements GameState {
 			    glPushMatrix();
 			    glColor3f( 255, 255, 255 );
 				glBegin( GL_LINE_LOOP );
-					glVertex3f(ship.getPosition().x * Globals.coord_ratio_x, -ship.getPosition().z * Globals.coord_ratio_y, 0.0f);
-					glVertex3f(mouse_x, -ship.getPosition().z * Globals.coord_ratio_y, 0.0f );
+					glVertex3f(
+							(ship.getPosition().x + ship.getModel().getWidth() / 2) * Globals.coord_ratio_x, 
+							(-ship.getPosition().z + ship.getModel().getHeight() / 2) * Globals.coord_ratio_y, 
+							0.0f 
+						);
+					glVertex3f(
+							mouse_x, 
+							(-ship.getPosition().z + ship.getModel().getHeight() / 2) * Globals.coord_ratio_y, 
+							0.0f 
+						);
 					glVertex3f(mouse_x, mouse_y, 0.0f );
 				glEnd();
 			    
@@ -452,35 +501,25 @@ public class RunState implements GameState {
 		this.mouse_y = mouse_y;
 		
 		// Convert mouse coordinates to 2D world coordinates
-		float world_x = mouse_x / Globals.coord_ratio_x;
-		float world_y = mouse_y / Globals.coord_ratio_y;
+		Vector2f world_mouse = new Vector2f(
+				mouse_x / Globals.coord_ratio_x,
+				mouse_y / Globals.coord_ratio_y
+			);
 		
-		// Calculate new ship orientation using trigonometry
-		double adjacent = world_x - ship.getPosition().x ;						// Width of triangle
-		double opposite = world_y + ship.getPosition().z ;						// Height of triangle
+		// Due to silly implementation, y is z for world coords.
+		Vector2f ship_pos = new Vector2f(
+				ship.getPosition().x + ship.getModel().getWidth() / 2,
+				ship.getPosition().z - ship.getModel().getHeight() / 2			
+			);
 		
-		// TODO: consider how to do this without sqrt!
-		double hypotenuse = sqrt( pow(adjacent,2) + pow(opposite,2) );			// Pythagoras finds hyp
-		
-		double angle = asin(opposite / hypotenuse);
-		
-		// Correct angle for quadrants in radians - faster to use comparisons on adj&opp than tan/cos theta
-		if(adjacent < 0) {
-			if(opposite < 0)			// 3rd quadrant (adj -ve, opp -ve)
-				angle = PI - angle;		// -ve angle
-			 else						// 2nd quadrant (adj -ve. opp +ve)
-				angle = PI - angle;
-			
-		} else if(opposite < 0) { 		// 4th quadrant (adj +ve, opp -ve)
-				angle = 2*PI + angle;
-		}								// else 1st quadrant (+ve +ve) no action
+		Vector2f orientation = Utils.getOrientationToPoint2d(world_mouse, ship_pos);
 		
 		// Get the unit vector of the angle and set it on the shipda
 		ship.setOrientation(
-			new Vector3f(
-				(float) cos(angle - PI/2), 
+			new Vector3f( 
+				orientation.x,
 				0.0f, 
-				(float) sin(angle - PI/2)
+				orientation.y
 			));
 		
 //		System.out.println(
@@ -497,6 +536,13 @@ public class RunState implements GameState {
 			fire=true;
 		else
 			fire=false;
+		
+		if(rightDown) {
+			bomb=true;
+		} else {
+			bomb=false;
+			bombed=false;
+		}
 	}
 
 	
@@ -538,14 +584,17 @@ public class RunState implements GameState {
 				break;
 			case Keyboard.KEY_F4:												// Fall through to Pause
 			case Keyboard.KEY_P:
-				data.pause();
-				if(paused)
+				
+				if(paused) {
 					this.resume();
-				else
+					data.resume();
+				} else {
 					this.pause();												// Toggle pause for the bottom state
+					data.pause();
+				}
 				break;
 			case Keyboard.KEY_ESCAPE:											// Return to menu state
-				data.reset(Globals.LIVES);
+				data.reset();
 				engine.changeState(new MenuState(data).init(engine));
 				break;
 				
@@ -589,7 +638,9 @@ public class RunState implements GameState {
 	@Override
 	public void pause() {
 		paused = !paused;
-		spawner.stop();
+		enemySpawner.stop();
+		powerupSpawner.stop();
+		
 		speedcont.pause();
 		mp3.pause();
 	}
@@ -599,7 +650,8 @@ public class RunState implements GameState {
 	@Override
 	public void resume() {
 		paused = false;
-		spawner.start(new RandomSpawner());
+		enemySpawner.start(new EnemySpawner());
+		powerupSpawner.start(new PowerupSpawner());
 		
 		speedcont.resume();
 		mp3.resume();
@@ -609,7 +661,9 @@ public class RunState implements GameState {
 
 	@Override
 	public void cleanup() {
-		spawner.stop();
+		enemySpawner.stop();
+		powerupSpawner.stop();
+		
 		mp3.stop();
 		speedcont.stop();
 	}

@@ -3,13 +3,17 @@ package csc3202.States;
 import static org.lwjgl.opengl.GL11.*;
 import static csc3202.Engine.Globals.*;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.newdawn.slick.Color;
 import org.newdawn.slick.TrueTypeFont;
+import org.newdawn.slick.opengl.Texture;
 import org.newdawn.slick.opengl.TextureImpl;
+import org.newdawn.slick.opengl.TextureLoader;
 
 import csc3202.Engine.*;
 import csc3202.Engine.Interfaces.GameState;
@@ -25,12 +29,14 @@ import csc3202.Engine.Interfaces.GameState;
 public class OverlayState implements GameState {
 	
 	DecimalFormat scoreFormatter = new DecimalFormat("0000");
-    
+	
 	private GameData data;
 	
 	private Engine engine;
 	
-	private Date date;
+	private Date remaining;
+	
+	private Texture bomb = null;
 	
 	/**
 	 * Construct the overlay
@@ -38,13 +44,18 @@ public class OverlayState implements GameState {
 	public OverlayState(GameData data) {
 		
 		this.data = data;
-		this.date = new Date();	// For formatting time remaining
+		this.remaining = new Date();	// For formatting time remaining
 	}
 	
 	@Override
 	public GameState init(Engine engine) {
 		
 		this.engine = engine;
+		try {
+			bomb = TextureLoader.getTexture("PNG", new FileInputStream("res/bomb.png"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		
 		return this;
 	}
@@ -95,6 +106,11 @@ public class OverlayState implements GameState {
 						BORDER_WIDTH/2 -10, 
 						"LIVES: " + ((data.getLives() >= 0) ? data.getLives() : 0)
 					);
+				f24.drawString(
+						Globals.window_width-350,
+						BORDER_WIDTH/2 -10, 
+						"MULT: x" + data.getMultiplier()
+					);
 				
 				// Calculate and format time remaining
 				if(data.getStartTime() > 0) {
@@ -106,24 +122,25 @@ public class OverlayState implements GameState {
 							data.getAnalysis().get(0).getArtist() + " - " +
 							data.getAnalysis().get(0).getTitle()
 						);
-					date.setTime(
-							data.getAnalysis().get(0).getDuration()
-							 - (System.currentTimeMillis()
-							 - data.getStartTime())
-						);
+					if(! data.isPaused())
+						remaining.setTime(
+								data.getAnalysis().get(0).getDuration()
+								 - (System.currentTimeMillis()
+								 - data.getStartTime())
+							);
 					f24.drawString(
 							Globals.window_width - 120,
 							Globals.window_height - BORDER_WIDTH + 10,
-							new SimpleDateFormat("mm:ss").format(date)
+							new SimpleDateFormat("mm:ss").format(remaining)
 						);
 				}
 				
 			    // Draw paused
 			    if(data.isPaused()) {
 			    	f24.drawString(
-		    				Globals.window_width/2 - ("paused".length() * FONT_24PT) /2, 
+		    				Globals.window_width/2 - ("PAUSED".length() * FONT_24PT) /2, 
 		    				BORDER_WIDTH/2 -10, 
-		    				"paused", 
+		    				"PAUSED", 
 		    				Color.red
 		    			);
 
@@ -131,12 +148,57 @@ public class OverlayState implements GameState {
 			    	FontManager.getManager().getFont(18f)
 			    		.drawString(
 			    				Globals.window_width/2 - (cont1.length() * FONT_18PT) /2, 
-			    				Globals.window_height - BORDER_WIDTH, 
+			    				Globals.window_height - BORDER_WIDTH + 10, 
 			    				cont1, 
 			    				Color.orange
 			    			);
 			    }
+
 			    
+			    // Bomb text
+			    f24.drawString(
+						Globals.window_width - 350,
+						Globals.window_height - BORDER_WIDTH + 10,
+						"Bombs:"
+					);
+				
+			    // Draw scaled bombs
+				final float scale = 0.2f;
+				final float x_start = Globals.window_width - 260;
+				final float spacing = 5f;
+				final float y = Globals.window_height - BORDER_WIDTH + 10;
+			    for(int i=0; i<data.getBombs(); i++) {
+			    	float x = x_start + (i * bomb.getTextureWidth() * scale) + spacing;
+			    	
+					// Render Logo
+					glPushMatrix();
+						Color.white.bind();
+						bomb.bind();
+				        
+				        glBegin(GL_QUADS);
+							glTexCoord2f(0,0);
+							glVertex2f(
+									x,
+									y
+								);
+							glTexCoord2f(1,0);
+							glVertex2f(
+									x + bomb.getTextureWidth() * scale, 
+									y
+								);
+							glTexCoord2f(1,1);
+							glVertex2f(
+									x + bomb.getTextureWidth()  * scale, 
+									y + bomb.getTextureHeight() * scale
+								);
+							glTexCoord2f(0,1);
+							glVertex2f(
+									x, 
+									y + bomb.getTextureHeight() * scale
+								);
+				        glEnd();
+					glPopMatrix();
+			    }
 			    
 				glDisable(GL_TEXTURE_2D);
 			glPopMatrix();

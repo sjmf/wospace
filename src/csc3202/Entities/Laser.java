@@ -17,7 +17,7 @@ import csc3202.Engine.OBJLoader.OBJModel;
  * @author a9134046 - Sam Mitchell Finnigan
  * @version Oct 2012
  */
-public class Laser extends Entity implements Collidable {
+public class Laser extends Entity {
 	
 	private Vector4f colour = new Vector4f(1.0f,1.0f,1.0f,0.8f);
 	
@@ -38,9 +38,9 @@ public class Laser extends Entity implements Collidable {
 	
 	
 	/**
-	 * Render a red laser
+	 * Render a laser
 	 * 
-	 * Possible improvement: make laser a red light source
+	 * Possible improvement: make laser a light source
 	 */
 	public int render() {
 		
@@ -63,9 +63,8 @@ public class Laser extends Entity implements Collidable {
 	}
 
 
-
+	@Override
 	public int update(long delta) {
-		
 		return SUCCESS;
 	}
 
@@ -73,23 +72,23 @@ public class Laser extends Entity implements Collidable {
 
 	@Override
 	public int destroy() {
-		// TODO Play destruction animation
 		return SUCCESS;
 	}
 
 	
 	
 	@Override
-	public int move(float delta) {
+	public int move(long delta) {
 		
-		this.setPosition(Vector3f.add(this.getPosition(), (Vector3f) (new Vector3f(this.getDirection()).scale(delta)), null));
+		this.setPosition(
+				Vector3f.add(this.getPosition(), (Vector3f) (new Vector3f(this.getDirection()).scale(delta)), null));
 
 		if(! Hitbox.checkCollision(this.getHitbox(), Globals.FIELD_HITBOX)) {	// If inside hitbox for field: Check where the laser is going
 
 			// Calculate end point of ray
 			Vector2f start = new Vector2f(this.getPosition().x, this.getPosition().z);
 			Vector2f scaleDir = (Vector2f) new Vector2f(this.getDirection().x / LASER_SPEED, this.getDirection().z / LASER_SPEED).scale(FIELD_HEIGHT);
-			Vector2f end = Vector2f.add(cloneVec2(start), scaleDir, null);
+			Vector2f end = Vector2f.add(Utils.cloneVec2(start), scaleDir, null);
 			
 			if (! Hitbox.checkIntersection(FIELD_HITBOX, start, end) ) {
 				return DONE;
@@ -106,12 +105,6 @@ public class Laser extends Entity implements Collidable {
 		this.colour.x = r;
 		this.colour.y = g;
 		this.colour.z = b;
-	}
-	
-
-	@Override
-	public boolean collides(Collidable c) {
-		return Hitbox.checkCollision(getHitbox(), c.getHitbox());
 	}
 
 }

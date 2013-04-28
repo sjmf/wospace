@@ -239,12 +239,12 @@ public class GameOverState implements GameState {
 					case Keyboard.KEY_RETURN: 									// Fall through to restart
 					case Keyboard.KEY_SPACE:
 					case Keyboard.KEY_R:										// Restart
-						data.reset(Globals.LIVES);
+						data.reset();
 						engine.changeState(new RunState(data).init(engine));	// Push new states
 						engine.pushState(new OverlayState(data).init(engine));
 						break;
 					case Keyboard.KEY_ESCAPE:									// Return to menu state
-						data.reset(Globals.LIVES);
+						data.reset();
 						engine.changeState(new MenuState(data).init(engine));
 						break;
 					default:

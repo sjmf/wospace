@@ -4,6 +4,7 @@ package csc3202.Engine.AI;
 import java.util.List;
 
 import csc3202.Engine.Globals;
+import csc3202.Engine.Utils;
 import csc3202.Engine.Sound.AudioEvent;
 import csc3202.Engine.Sound.BeatFile;
 
@@ -24,7 +25,7 @@ public class SpeedControl {
     	
     	private boolean running = true;
     	private boolean paused = false;
-    	private boolean unpaused = false;
+    	private boolean resume = false;
     	
     	@Override
         public void run() {
@@ -42,7 +43,7 @@ public class SpeedControl {
     		// Game speed calculations
     		float avg = amplitude.getAvg();
     		float e_min = 0.4f * avg;		// - 60%
-    		float e_max = 1.6f * avg;		// + 60%
+    		float e_max = 1.5f * avg;		// + 50%
     		
     		AudioEvent e = null;
     		try {
@@ -50,34 +51,34 @@ public class SpeedControl {
 	    		
 	    		while(++index < events.size() && running) {
 	    			
-	    			if(paused) {				// Handle pause condition
+	    			
+	    			e = events.get(index);
+	    			
+	    			if(paused) {												// Handle pause condition
 	    				if(startPause == 0l) {
 	    					startPause = System.currentTimeMillis();
-	    				} else if(unpaused) {
-	    					paused = unpaused = false;
-	    					startRun += System.currentTimeMillis() - startPause;	// Maintain step with MP3 by incrementing start by time paused 
+	    				} else if(resume) {
+	    					paused = resume = false;
+	    					startRun += System.currentTimeMillis() - startPause;// Maintain step with MP3 by incrementing start by time paused 
 	    				}
 	    				continue;
 	    			}
 	    			
-	    			// Update game speed with moving average
-	    			e = events.get(index);
+	    			avgbuf[index%SAMPLES] = Utils.normalise(e.value, e_min, e_max);
 	    			
-	    			avgbuf[index%SAMPLES] = Globals.normalise(e.value, e_min, e_max);
-	    			
-	    			for(float a : avgbuf)		// Run moving average calculation
+	    			for(float a : avgbuf)										// Run moving average calculation
 	    				movingavg += a;
 	    			movingavg /= SAMPLES;
 	    			
 	    			if(movingavg > 0 && movingavg < e_max) {
-	    				Globals.game_speed = 0.1f + movingavg * MULTIPLIER;
+	    				Globals.game_speed = (movingavg * MULTIPLIER);
 	    			} else if (movingavg < 0) {
-	    				Globals.game_speed = 0;
+	    				Globals.game_speed = 0.1f;								// Keep moving... slowly.
 	    			} else if(movingavg > e_max) {
 	    				Globals.game_speed = 1 * MULTIPLIER;
 	    			}
 	    			
-	    			System.out.println(Globals.game_speed);
+//	    			System.out.println(e.time + "\t" + Globals.game_speed);
 	    			
 	    			// Sleep Time to next update (can skip if not running fast enough to keep up)
 	    			if(startRun + e.time > System.currentTimeMillis()) {
@@ -87,7 +88,7 @@ public class SpeedControl {
 			} catch (InterruptedException e1) {
 				e1.printStackTrace();
 			}
-    		
+    		Globals.game_speed = 6f;
     		System.out.println("<< SpeedController thread exit");
         }
     	
@@ -101,8 +102,8 @@ public class SpeedControl {
     	}
     	
     	/** Unpause */
-    	public void unpause() {
-    		unpaused = true;
+    	public void resume() {
+    		resume = true;
     	}
     }
     
@@ -138,6 +139,6 @@ public class SpeedControl {
 	
 	/** Unpause */
 	public void resume() {
-		this.s_thread.unpause();
+		this.s_thread.resume();
 	}
 }

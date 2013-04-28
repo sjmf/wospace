@@ -263,10 +263,10 @@ public class MenuState implements GameState, Observer {
 
 	
 	
-	///////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////
 	// MENU PAGES
 	
-	/**
+	/***************************************************************************
 	 * Title page
 	 */
 	private class TitlePage implements MenuPage {
@@ -325,7 +325,7 @@ public class MenuState implements GameState, Observer {
 	
 	
 	
-	/**
+	/**************************************************************************
 	 * High-score display
 	 */
 	private class HighScorePage implements MenuPage {
@@ -412,7 +412,7 @@ public class MenuState implements GameState, Observer {
 	
 	
 	
-	/**
+	/**************************************************************************
 	 * Credits page
 	 */
 	private class CreditsPage implements MenuPage {
@@ -478,7 +478,7 @@ public class MenuState implements GameState, Observer {
 	
 	
 	///////////////////////////////////////////////////////////////////////////
-	// File chooser observer pattern
+	// File chooser observer pattern stuff
 
 	
 	public void update(Observable obj, Object arg) {
