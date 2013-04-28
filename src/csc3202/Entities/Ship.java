@@ -179,7 +179,7 @@ public class Ship extends Entity {
 		this.setPosition(
 				Vector3f.add(
 						this.getPosition(), 
-						(Vector3f) this.getDirection().scale(SHIP_SPEED * delta), 
+						(Vector3f) this.getDirection().scale(delta * SHIP_SPEED), 
 						null
 					));
 		
@@ -249,8 +249,6 @@ public class Ship extends Entity {
 		powerup_time = System.currentTimeMillis();
 		if(this.fire_rate > Globals.SHIP_MAX_FIRE_RATE)
 			this.fire_rate -= Globals.POWERUP_FIRE_RATE_INC;
-		
-		System.out.println(this.fire_rate);
 	}
 
 
@@ -258,7 +256,7 @@ public class Ship extends Entity {
 	@Override
 	public boolean collides(Collidable c) {
 		
-		if(state == ShipState.OK) {
+		if(state == ShipState.OK || state == ShipState.INVINCIBLE) {
 			return Hitbox.checkCollision(getHitbox(), c.getHitbox());
 		} else {
 			return false;	// Invincible or dead- either way we don't need to do a collision check

@@ -70,12 +70,13 @@ public class Utils {
 	 * @return
 	 */
 	public static final ArrayList<Laser> makeExplosion(Vector3f origin,
-														Vector3f colour ) {
+														Vector3f colour,
+														int segments ) {
 		
 		ArrayList<Laser> explosion = new ArrayList<Laser>();
 		
-		float inc = (float) ((2 * Math.PI) / 64);								// Spawn 64 lasers (2^6)
-		for(int i=0; i<64; i++) {
+		float inc = (float) ((2 * Math.PI) / segments);								// Spawn 64 lasers (2^6)
+		for(int i=0; i<segments; i++) {
 			float rad = i * inc; 												// Calculate rotation in radians
 			
 			Vector3f dir = new Vector3f(

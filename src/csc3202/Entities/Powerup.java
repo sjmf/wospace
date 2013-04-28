@@ -5,7 +5,11 @@ package csc3202.Entities;
 
 import static csc3202.Engine.Globals.*;
 import static org.lwjgl.opengl.GL11.*;
+
+import org.lwjgl.util.vector.Vector3f;
+
 import csc3202.Engine.Globals;
+import csc3202.Engine.Hitbox;
 import csc3202.Engine.Utils;
 import csc3202.Engine.Interfaces.Entity;
 import csc3202.Engine.OBJLoader.OBJManager;
@@ -55,6 +59,30 @@ public class Powerup extends Entity {
 	
 	@Override
 	public int update(long delta) {
+		return SUCCESS;
+	}
+	
+	/**
+	 * Powerups ignore game speed and fall at constant rate
+	 */
+	@Override
+	public int move(long delta) {
+
+		// calculate new position using vector
+		Vector3f position = Vector3f.add(
+				this.getPosition(),
+				(Vector3f) Utils.cloneVec3(this.getDirection())
+					.scale(delta * Globals.POWERUP_SPEED), 
+				null
+			);
+
+		// Check new position is within field bounds (or if it is moving towards the field)
+		if((! Hitbox.checkCollision(this.getHitbox(), Globals.FIELD_HITBOX))
+			&& (! Utils.movingTowardsField(this))) {
+				return DONE;			// Moving away from field, destroy.
+		}
+	
+		this.setPosition(position);		// Else apply the updated position
 		return SUCCESS;
 	}
 	

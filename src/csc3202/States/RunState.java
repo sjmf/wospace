@@ -69,7 +69,7 @@ public class RunState implements GameState {
 	private boolean keydown_down = false;
 	private boolean fire = false;
 	private boolean bomb = false;
-	private boolean bombed = true;
+	private boolean bombed = false;
 
 	// Is the game paused?
 	private boolean paused = false;
@@ -264,7 +264,7 @@ public class RunState implements GameState {
 			
 			// Check ship collision with fire.
 			// Order important here because ship can be invincible
-			if(ship.collides(l)) {
+			if(ship.collides(l) && ship.getState() != Ship.ShipState.INVINCIBLE ) {
 				l.destroy();
 				li.remove();
 				collided++;	// Bang! You're dead.
@@ -276,7 +276,7 @@ public class RunState implements GameState {
 
 			Enemy e = ei.next();
 			e.update(delta);
-			if(ship.collides(e)) {
+			if(ship.collides(e) && ship.getState() != Ship.ShipState.INVINCIBLE ) {
 				collided++;	// Ship collision with enemy
 
 				destroyed_enemies.add(e);
@@ -301,7 +301,8 @@ public class RunState implements GameState {
 			// Death explosion! (orange)
 			ship_lasers.addAll(Utils.makeExplosion(
 					ship.getPosition(), 
-					new Vector3f(1.0f, 0.5f, 0f)
+					new Vector3f(1.0f, 0.5f, 0f),
+					64
 				));
 		}
 		
@@ -313,7 +314,8 @@ public class RunState implements GameState {
 		long elapsed = (System.currentTimeMillis() - data.getStartTime());
 		if(elapsed >= duration) {												// Are we Bi-Winning?
 			if(!game_won) {
-				enemySpawner.stop();
+
+				stopSpawners();
 				data.setStartTime(0);
 				data.setGameWon(true);
 				engine.pushState(new GameOverState(data).init(engine));			// GameOver state also handles winning
@@ -327,8 +329,16 @@ public class RunState implements GameState {
 		
 		if(data.getLives() < 0) {
 			if(!game_over) {													// Game Over, man! Game over!
-				enemySpawner.stop();
+
+				Utils.makeExplosion(
+						ship.getPosition(), 
+						new Vector3f(1.0f, 0.1f, 0.1f),
+						128
+					);
+				
+				stopSpawners();
 				data.setStartTime(0);
+				data.setGameWon(false);
 				engine.pushState(new GameOverState(data).init(engine));			// Create the "Game Over" state
 				game_over = true;												//  and push it onto the stack - but only once!
 			}
@@ -389,7 +399,8 @@ public class RunState implements GameState {
 				ship_lasers.addAll(
 					Utils.makeExplosion(
 							ship.getPosition(), 
-							new Vector3f(0.5f, 0.5f, 1.0f)
+							new Vector3f(0.5f, 0.5f, 1.0f),
+							128
 						));
 				data.decBombs();
 			}
@@ -638,9 +649,7 @@ public class RunState implements GameState {
 	@Override
 	public void pause() {
 		paused = !paused;
-		enemySpawner.stop();
-		powerupSpawner.stop();
-		
+		stopSpawners();
 		speedcont.pause();
 		mp3.pause();
 	}
@@ -661,10 +670,14 @@ public class RunState implements GameState {
 
 	@Override
 	public void cleanup() {
-		enemySpawner.stop();
-		powerupSpawner.stop();
+		stopSpawners();
 		
 		mp3.stop();
 		speedcont.stop();
+	}
+	
+	private void stopSpawners() {
+		enemySpawner.stop();
+		powerupSpawner.stop();
 	}
 }

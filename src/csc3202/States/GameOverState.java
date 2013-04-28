@@ -30,7 +30,8 @@ public class GameOverState implements GameState {
 	private static final String HIGH_SCORE = "New High Score: ";
 	private static final String GAME_OVER = "GAME OVER";
 	private static final String WIN_TEXT = "SONG COMPLETE";
-	private static final String ENTER_NAME = "Enter your Name:";
+	private static final String ENTER_NAME = "Enter your Name: ";
+	private static final String CONFIRM_MSG = "> Press ENTER to confirm <";
 	private static final String RESTART_MSG = "Press R to restart, or ESC to return to menu";
 	
 	private enum HighScoreStates {
@@ -187,6 +188,14 @@ public class GameOverState implements GameState {
 			    				RESTART_MSG
 			    			);
 		    	}
+		    	if( state == HighScoreStates.HS_NAME_ENTRY) {
+		    		f18.drawString(												// DRAW CONFIRM MESSAGE
+		    				Globals.window_width/2 - (CONFIRM_MSG.length() * FONT_18PT) /2, 
+		    				Globals.window_height/2 + 140, 
+		    				CONFIRM_MSG,
+		    				Color.darkGray
+		    			);
+		    	}
 		    	
 		    glPopMatrix();
 		    glDisable(GL_TEXTURE_2D);
@@ -209,13 +218,14 @@ public class GameOverState implements GameState {
 				String keyName = Keyboard.getKeyName(key);
 				int index = Keyboard.getKeyIndex(keyName);
 	
-//				System.out.println(index + "\t" + keyName + "\t" + isKeyLetter(index));
+				System.out.println(index + "\t" + keyName + "\t" + isKeyValid(index));
 				
 				if( index == Keyboard.KEY_RETURN ) {
-					chars_entered = NAME_LETTERS;
+					while(++chars_entered < NAME_LETTERS)
+						name_chars[chars_entered] = ' ';
 				}
 				
-				if(isKeyLetter(index) || index == Keyboard.KEY_SPACE) {			
+				if(isKeyValid(index) || index == Keyboard.KEY_SPACE) {			
 					
 					if(index != Keyboard.KEY_SPACE)
 						name_chars[chars_entered] = keyName.charAt(0);			// Get char from keyname
@@ -243,14 +253,16 @@ public class GameOverState implements GameState {
 						engine.changeState(new RunState(data).init(engine));	// Push new states
 						engine.pushState(new OverlayState(data).init(engine));
 						break;
-					case Keyboard.KEY_ESCAPE:									// Return to menu state
-						data.reset();
-						engine.changeState(new MenuState(data).init(engine));
-						break;
 					default:
 						break;
 				}
 			}
+		}
+		
+		if(Keyboard.getEventKeyState() 
+				&& key == Keyboard.KEY_ESCAPE) {								// Return to menu state
+			data.reset();
+			engine.changeState(new MenuState(data).init(engine));
 		}
 	}
 	
@@ -261,9 +273,10 @@ public class GameOverState implements GameState {
 	 * @param id - the key ID
 	 * @return true or false
 	 */
-	private boolean isKeyLetter(int id) {
+	private boolean isKeyValid(int id) {
 		
-		return (   (id >= 16 && id <= 25)
+		return (   (id >= 02 && id <= 11)		//Numbers
+				|| (id >= 16 && id <= 25)		//Letters
 				|| (id >= 30 && id <= 38)
 				|| (id >= 44 && id <=50) );
 	}

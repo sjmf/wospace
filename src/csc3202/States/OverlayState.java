@@ -37,6 +37,10 @@ public class OverlayState implements GameState {
 	private Date remaining;
 	
 	private Texture bomb = null;
+
+	private long elapsed;
+
+	private long startTime;
 	
 	/**
 	 * Construct the overlay
@@ -50,6 +54,7 @@ public class OverlayState implements GameState {
 	@Override
 	public GameState init(Engine engine) {
 		
+		startTime = System.currentTimeMillis();
 		this.engine = engine;
 		try {
 			bomb = TextureLoader.getTexture("PNG", new FileInputStream("res/bomb.png"));
@@ -63,6 +68,17 @@ public class OverlayState implements GameState {
 	
 	@Override
 	public int update(long delta) {
+		
+		if(data.isPaused()) {
+			// Maintain song start time in paused state
+			if(elapsed == 0l) {
+				elapsed = System.currentTimeMillis() - startTime;
+			} else {
+				data.setStartTime(System.currentTimeMillis() - elapsed);				// Maintain step with MP3 by incrementing start by time paused 
+			}
+		} else {
+			elapsed = 0l;
+		}
 		return SUCCESS;
 	}
 	

@@ -43,12 +43,8 @@ public class GameData {
 	/** Timestamp of when the game was started **/
 	private long startTime = 0;
 	
-	/** Timestamp when the game was paused, used to modify startTime **/
-	long startPause=0;
-	
 	/** Whether the game is paused **/
 	private boolean paused = false;
-	private boolean resume = false;
 
 	/**
 	 * Constructor with no of starting lives
@@ -105,15 +101,6 @@ public class GameData {
 	}
 
 	public boolean isPaused() {
-		// Hack this in here- GameData doesn't have the equivalent of an update
-		//  method, but this gets called every frame in OverlayState
-		if(startPause == 0l) {
-			startPause = System.currentTimeMillis();
-		} else if(resume) {
-			paused = resume = false;
-			startTime += System.currentTimeMillis() - startPause;				// Maintain step with MP3 by incrementing start by time paused 
-			startPause = 0l;
-		}
 		return paused;
 	}
 
@@ -122,7 +109,7 @@ public class GameData {
 	}
 	
 	public void resume() {
-		resume = true;
+		this.paused = false;
 	}
 
 	public boolean isGameWon() {

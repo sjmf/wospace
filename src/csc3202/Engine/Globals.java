@@ -78,18 +78,21 @@ public class Globals {
 	
 	// Ship data
 	public static final int LIVES = 3;
+	public static final float SHIP_SPEED = 0.15f;
+	public static final float SHIP_VELOCITY_INC = 0.01f;
 	public static final int SHIP_FIRE_RATE = 120;								// ms
 	public static final int SHIP_MAX_FIRE_RATE= 40;
+	public static final float LASER_SPEED = 0.3f;
+	
+	public static final long INVINCIBILITY_FLASH_DURATION = 500;				// 1/2 second
+	public static final long INVINCIBILITY_DURATION = 3000;						// 4 seconds
+	public static final int BOMBS_INITIAL_SUPPLY = 1;
+	public static final int MAX_BOMBS = 4;
+	
 	public static final int POWERUP_FIRE_RATE_INC = 40;							// decrease ship fire delay by 20ms
 	public static final int POWERUP_SPAWN_RATE = 20000;							// ms
 	public static final int POWERUP_DURATION = 10000;							// 10 s
-	public static final long INVINCIBILITY_FLASH_DURATION = 500;				// 1/2 second
-	public static final long INVINCIBILITY_DURATION = 3000;						// 4 seconds
-	public static final float SHIP_SPEED = 0.15f;
-	public static final float LASER_SPEED = 0.3f;
-	public static final float SHIP_VELOCITY_INC = 0.01f;
-	public static final int BOMBS_INITIAL_SUPPLY = 1;
-	public static final int MAX_BOMBS = 4;
+	public static final float POWERUP_SPEED = 1.6f;
 	
 	
 	// Entity model paths

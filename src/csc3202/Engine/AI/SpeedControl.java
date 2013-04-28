@@ -73,7 +73,7 @@ public class SpeedControl {
 	    			if(movingavg > 0 && movingavg < e_max) {
 	    				Globals.game_speed = (movingavg * MULTIPLIER);
 	    			} else if (movingavg < 0) {
-	    				Globals.game_speed = 0.1f;								// Keep moving... slowly.
+	    				Globals.game_speed = 0.3f;								// Keep moving... slowly.
 	    			} else if(movingavg > e_max) {
 	    				Globals.game_speed = 1 * MULTIPLIER;
 	    			}
@@ -88,7 +88,7 @@ public class SpeedControl {
 			} catch (InterruptedException e1) {
 				e1.printStackTrace();
 			}
-    		Globals.game_speed = 6f;
+    		Globals.game_speed = 5f;
     		System.out.println("<< SpeedController thread exit");
         }
     	
