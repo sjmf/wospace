@@ -49,9 +49,8 @@ public class SpeedControl {
     		try {
 	    		List<AudioEvent> events = amplitude.getEvents();
 	    		
-	    		while(++index < events.size() && running) {
-	    			
-	    			
+	    		while(index < events.size() && running) {
+	    				    			
 	    			e = events.get(index);
 	    			
 	    			if(paused) {												// Handle pause condition
@@ -60,6 +59,8 @@ public class SpeedControl {
 	    				} else if(resume) {
 	    					paused = resume = false;
 	    					startRun += System.currentTimeMillis() - startPause;// Maintain step with MP3 by incrementing start by time paused 
+	    				} else {
+	    					Thread.sleep(20);
 	    				}
 	    				continue;
 	    			}
@@ -84,10 +85,12 @@ public class SpeedControl {
 	    			if(startRun + e.time > System.currentTimeMillis()) {
 	    				Thread.sleep(e.time - amplitude.getEvents().get(index-1).time);
 	    			}
+    				index++;
 	    		}
 			} catch (InterruptedException e1) {
-				e1.printStackTrace();
+				System.out.println("++ SpeedController " + e1.getMessage());
 			}
+    		
     		Globals.game_speed = 0.1f;
     		System.out.println("<< SpeedController thread exit");
         }

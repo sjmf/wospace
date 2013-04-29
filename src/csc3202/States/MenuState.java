@@ -527,8 +527,8 @@ public class MenuState implements GameState, Observer {
 				
 				// Show a file-chooser
 				JFileChooser chooser = new JFileChooser(
-						(lastDir == null) ? new java.io.File("~").getCanonicalPath()
-								 			: directory.getCanonicalPath());
+						(directory == null) ? new java.io.File("~").getAbsolutePath()
+								 			: directory.getAbsolutePath());
 			    FileNameExtensionFilter filter = new FileNameExtensionFilter("MP3 Files", "mp3");
 			    
 			    chooser.setFileFilter(filter);
@@ -546,10 +546,20 @@ public class MenuState implements GameState, Observer {
 			    	return file.getCanonicalPath();
 			    }
 			    
-			} catch ( ClassNotFoundException | InstantiationException
-					| IllegalAccessException | UnsupportedLookAndFeelException 
-					| IOException e) {
+			} catch ( IOException e) {
 
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InstantiationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (UnsupportedLookAndFeelException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		    return null;

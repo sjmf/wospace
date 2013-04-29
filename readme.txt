@@ -3,7 +3,7 @@ RUNNING THE GAME
 
 Launch the game using the command:
 
-	java -Djava.library.path=native/linux/ -jar inv.jar
+	java -Djava.library.path=native/linux/ -jar wospace.jar
 
 from the local directory. Replace "linux" with your host OS.
 
@@ -11,11 +11,20 @@ If you are running Windows, you can create a new shortcut and paste in the comma
 Ensure that you use a fully qualified path to the executable and libraries if you
 choose this option- something like:
 
-	java -Djava.library.path='C:\Invaders\native\windows\' -jar 'C:\Invaders\inv.jar'
+	java -Djava.library.path='C:\WOSGame\native\windows\' -jar 'C:\WOSGame\wospace.jar'
 
-You may need to install and build dependencies for audio-response to work. The packages on debian-based systems can be installed with:
+Dependencies should be included.
 
-	sudo apt-get install libvamp-hostsdk3 vamp-plugin-sdk
+To use audio analysis, set the VAMP_PATH variable to the correct plugin path for your platform.
+Plugins are included for x86/64 Windows and Linux, and Universal Mac OSX (untested). EG:
+
+64-bit Windows:
+	set VAMP_PATH=vamp/win64
+32-bit Linux:
+	export VAMP_PATH=vamp/i686-linux
+
+Running the included .bat or .sh should do this for you.
+
 
 CONTROLS
 ========

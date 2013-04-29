@@ -100,7 +100,9 @@ public class RunState implements GameState {
 		this.data = data;
 		try {
 			this.mp3 = new MP3ToPCM(data.getMp3File());
-		} catch (UnsupportedAudioFileException | IOException e) {
+		} catch (UnsupportedAudioFileException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
@@ -354,23 +356,7 @@ public class RunState implements GameState {
 				engine.pushState(new GameOverState(data).init(engine));			// GameOver state also handles winning
 				game_won = true;
 				state = PlayState.GAME_OVER;
-				
-				ei = enemies.iterator();										// Remove all enemies
-				while(ei.hasNext()) {
-					Enemy e = ei.next();
-					
-					destroyed_enemies.add(e);									// Add to destruction animation stack
-					e.destroy();
-					ei.remove();
-					data.addScore(e.getScore());								// Enemies left are bonus score fodder
-				}
-				
-				pi = powerups.iterator();										// Stop stray powerups floating around after game-over
-				while (pi.hasNext()) {
-					Powerup p = pi.next();
-					p.destroy();
-					pi.remove();
-				}
+				emptyLists();
 			}
 			
 			return DONE;
@@ -391,6 +377,7 @@ public class RunState implements GameState {
 				data.setGameWon(false);
 				engine.pushState(new GameOverState(data).init(engine));			// Create the "Game Over" state
 				game_over = true;												//  and push it onto the stack - but only once!
+				emptyLists();
 			}
 			
 			return DONE; 														// Return ship destroyed if last life (0) used
@@ -460,6 +447,26 @@ public class RunState implements GameState {
 		return SUCCESS;
 	}
 
+	
+	private void emptyLists() {
+
+		Iterator<Enemy> ei = enemies.iterator();								// Remove all enemies
+		while(ei.hasNext()) {
+			Enemy e = ei.next();
+			
+			destroyed_enemies.add(e);											// Add to destruction animation stack
+			e.destroy();
+			ei.remove();
+			data.addScore(e.getScore());										// Enemies left are bonus score fodder
+		}
+		
+		Iterator<Powerup> pi = powerups.iterator();								// Stop stray powerups floating around after game-over
+		while (pi.hasNext()) {
+			Powerup p = pi.next();
+			p.destroy();
+			pi.remove();
+		}
+	}
 	
 	
 	/**************************************************************************
