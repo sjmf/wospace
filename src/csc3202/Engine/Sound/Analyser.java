@@ -94,8 +94,9 @@ public class Analyser {
 	/**
 	 * Load plugins
 	 * @throws LoadFailedException
+	 * @throws AnalyserException 
 	 */
-	public void init() throws LoadFailedException {
+	public void init() throws LoadFailedException, AnalyserException {
 		
 		PluginLoader loader = PluginLoader.getInstance();
 		Plugin p = null;
@@ -109,8 +110,7 @@ public class Analyser {
 
 		// Check for plugin existance
 		if(plugins.length == 0) {
-			System.err.println("jVamp plugins missing!");
-			return;
+			throw new AnalyserException("jVamp plugins missing!");
 		}
 		
 		// Iterate the installed plugins and load the ones we want
@@ -478,12 +478,23 @@ public class Analyser {
 			e.printStackTrace();
 		} catch (LineUnavailableException e) {
 			e.printStackTrace();
-		} catch (AnalyserException e) {
-			e.printStackTrace();
 		} catch (LoadFailedException e) {
 			e.printStackTrace();
-		} catch (UnsupportedAudioFileException e) {
-			// Only one of these I've ever seen thrown
+		} 
+		catch (AnalyserException e) {
+			e.printStackTrace();
+			
+			JOptionPane.showMessageDialog(null,
+				    "Can't find VAMP Analysis plugin on System Path!\n" +
+				    "Check the readme for details on this error.\n" +
+				    "Error message received was: " +
+				    e.getLocalizedMessage(),
+				    "Analyser Exception",
+				    JOptionPane.ERROR_MESSAGE);
+			
+			System.exit(1);
+		} 
+		catch (UnsupportedAudioFileException e) {
 			e.printStackTrace();
 
 			JOptionPane.showMessageDialog(null,

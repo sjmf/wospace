@@ -38,7 +38,7 @@ public class Globals {
 	public static int text_scale_width = 2000; 									// Render text on a larger size
 	public static int text_scale_height = 1000;									//  to make it look more crisp
 
-	public static final String WINDOW_TITLE = "Waste Of Space (pre-alpha)";
+	public static final String WINDOW_TITLE = "Waste Of Space";
 	
 	// File to read/write
 	public static final String HIGH_SCORE_FILE = "res/scores.txt";
