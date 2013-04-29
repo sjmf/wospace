@@ -8,8 +8,10 @@ import csc3202.Engine.Interfaces.*;
 import csc3202.Engine.OBJLoader.OBJManager;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 /**
  * An enemy which maintains its state in the game world
@@ -20,12 +22,12 @@ import org.lwjgl.util.vector.Vector3f;
 public class Enemy extends Entity {
 	
 	/* Colour in rgb */
-	private float a=1.0f;
+	protected float alpha=1.0f;
 	
-	private boolean destroyed = false;
+	protected boolean destroyed = false;
 	
-	float rot = 0.0f;											// Rotation angle for destruction animation
-	float rot_z = (Engine.rand.nextFloat() * 2) - 1.0f;			// z vector (rotation speed)
+	float rot = 0.0f;				// Rotation angle for destruction animation
+	float rot_z = 0.0f;				// z vector (rotation speed)
 	
 	private int score=0;
 	private int health=1;
@@ -41,6 +43,10 @@ public class Enemy extends Entity {
 		
 		this.setPosition(Utils.cloneVec3(Entity.ZERO));
 		this.setDirection(Utils.cloneVec3(Entity.ZERO));
+		
+		rot_z = (new Random().nextFloat() * 2) - 1.0f;
+		
+		this.setColour(new Vector4f(0.2f,1f,1f,1f));	// Color cyan
 	}
 	
 	
@@ -56,8 +62,8 @@ public class Enemy extends Entity {
 	public void fireLaser(ArrayList<Laser> lasers) {
 		
 		Laser l = new Laser(Vector3f.add(getPosition(), new Vector3f(0,0,getModel().getDepth() / 2), null));
-		l.colour(0.5f, 0.5f, 1.0f);
-		l.setDirection((Vector3f) Utils.cloneVec3(Entity.DOWN).scale(ENEMY_LASER_SPEED));
+		l.setColour(new Vector4f(0.5f, 0.5f, 1.0f, alpha));
+		l.setDirection((Vector3f) this.getOrientation().scale(ENEMY_LASER_SPEED));
 		lasers.add( l );
 	}
 	
@@ -66,7 +72,8 @@ public class Enemy extends Entity {
 	@Override
 	public int render() {
 		
-		glColor4f(1f,1f,1f,a);
+		if(colour != null)
+			glColor4f(super.colour.x,super.colour.y,super.colour.z,alpha);
 		
 		glPushMatrix();
 			glTranslatef(this.getPosition().x, this.getPosition().y, this.getPosition().z);
@@ -90,13 +97,12 @@ public class Enemy extends Entity {
 		rot += this.getTumble() * Globals.game_speed * ROTATE_SPEED * delta;
 
 		if(destroyed) {
-			a -= ALPHA_FADE * 2 * delta;
+			alpha -= ALPHA_FADE * 2 * delta;
 			this.getPosition().y -= FALL_SPEED * delta;
 
-			if(a <= 0.0f) 		// If we've faded out completely, let the calling class know 
-				return DONE;	// this enemy is to be removed from any holding data structure
+			if(alpha <= 0.0f) 		// If we've faded out completely, let the calling class know 
+				return DONE;		// this enemy is to be removed from any holding data structure
 		}
-
 
 		return SUCCESS;
 	}

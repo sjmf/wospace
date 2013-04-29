@@ -34,6 +34,10 @@ public class GameOverState implements GameState {
 	private static final String CONFIRM_MSG = "> Press ENTER to confirm <";
 	private static final String RESTART_MSG = "Press R to restart, or ESC to return to menu";
 	
+	private static final int name_entry_delay = 1000;	// 1s delay to name entry to prevent WASD entry by user mistake
+	
+	private long instantiated = 0l;
+	
 	private enum HighScoreStates {
 		NO_HIGH_SCORE,
 		HS_NAME_ENTRY,
@@ -45,6 +49,7 @@ public class GameOverState implements GameState {
 	private char[] name_chars = new char[NAME_LETTERS];
 	private String name = "";
 	private int chars_entered = 0;
+	private boolean confirmed = false;
 	
 	private Engine engine;
 	
@@ -61,6 +66,7 @@ public class GameOverState implements GameState {
 	public GameOverState(GameData data) {
 		this.data = data;
 		state = HighScoreStates.NO_HIGH_SCORE;
+		instantiated = System.currentTimeMillis();
 	}
 
 	
@@ -90,7 +96,7 @@ public class GameOverState implements GameState {
     	StringBuilder str = new StringBuilder();
     	for(char c : name_chars) {
     		if (c == '\u0000') {
-    			if((System.currentTimeMillis() / 500) %2 == 0)
+    			if((System.currentTimeMillis() / 500) %2 == 0 && !confirmed)
     				str.append('_');
     			else
     				str.append(' ');
@@ -212,17 +218,21 @@ public class GameOverState implements GameState {
 	@Override
 	public void keyInput(int key) {
 		
-		if(state == HighScoreStates.HS_NAME_ENTRY) {
+		if(state == HighScoreStates.HS_NAME_ENTRY
+				&& instantiated + name_entry_delay < System.currentTimeMillis()) {
+			
 			if (Keyboard.getEventKeyState()) {
 				
 				String keyName = Keyboard.getKeyName(key);
 				int index = Keyboard.getKeyIndex(keyName);
 	
-				System.out.println(index + "\t" + keyName + "\t" + isKeyValid(index));
+//				System.out.println(index + "\t" + keyName + "\t" + isKeyValid(index));
 				
-				if( index == Keyboard.KEY_RETURN ) {
+				if( index == Keyboard.KEY_RETURN || index == Keyboard.KEY_NUMPADENTER) {
 					while(++chars_entered < NAME_LETTERS)
 						name_chars[chars_entered] = ' ';
+					
+					confirmed = true;
 				}
 				
 				if(isKeyValid(index) || index == Keyboard.KEY_SPACE) {			

@@ -39,13 +39,15 @@ public class LoaderState implements GameState {
 		Globals.SHIP_MODEL_PATH,
 		Globals.LASER_MODEL_PATH,
 		Globals.ENEMY_MODEL_PATH,
+		Globals.TRACKER_MODEL_PATH,
+		Globals.BLASTER_MODEL_PATH,
 		Globals.BOMB_MODEL_PATH,
-		Globals.POWERUP_MODEL_PATH
+		Globals.POWERUP_MODEL_PATH,
 	};
 	
 	// Blending can disable colours - Keep this array the same length as MODELS
 	private static final boolean[] blending_on = {
-		false, true, true, false, false
+		false, true, true, true, false, false, false
 	};
 	
 	/** No. of models models_loaded **/

@@ -15,8 +15,6 @@ import csc3202.States.MenuState;
  * @version Oct 2012
  */
 class Main {
-	
-	
 	/**
 	 * @param args
 	 * @throws Exception 

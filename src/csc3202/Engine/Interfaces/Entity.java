@@ -4,6 +4,7 @@ import static csc3202.Engine.Globals.DONE;
 import static csc3202.Engine.Globals.SUCCESS;
 
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 import csc3202.Engine.Globals;
 import csc3202.Engine.Hitbox;
@@ -61,6 +62,13 @@ public abstract class Entity implements Collidable {
 	 */
 	private Vector3f orientation;
 	
+	
+	/**
+	 * Optional vector for setting RGBA colour.
+	 * Rendering left up to implementation
+	 */
+	protected Vector4f colour;
+	
 	/**
 	 * OPTIONAL: The rotation in degrees per second for a tumbling entity
 	 */
@@ -79,6 +87,7 @@ public abstract class Entity implements Collidable {
 		direction = new Vector3f();
 		position = new Vector3f();
 		orientation = new Vector3f();
+		colour = new Vector4f(1f,1f,1f,1f);	// White
 	}
 	
 	
@@ -210,6 +219,16 @@ public abstract class Entity implements Collidable {
 
 	public void setTumble(float tumble) {
 		this.tumble = tumble;
+	}
+
+
+	public Vector4f getColour() {
+		return colour;
+	}
+
+
+	public void setColour(Vector4f colour) {
+		this.colour = colour;
 	}
 	
 	

@@ -9,6 +9,7 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import org.lwjgl.opengl.Display;
 import org.newdawn.slick.Color;
 import org.newdawn.slick.TrueTypeFont;
 import org.newdawn.slick.opengl.Texture;
@@ -34,13 +35,16 @@ public class OverlayState implements GameState {
 	
 	private Engine engine;
 	
-	private Date remaining;
-	
 	private Texture bomb = null;
+	private Texture reticule = null;
 
 	private long elapsed;
-
 	private long startTime;
+	private Date remaining;
+
+	private int mouse_x; 
+	private int mouse_y;
+	
 	
 	/**
 	 * Construct the overlay
@@ -58,6 +62,7 @@ public class OverlayState implements GameState {
 		this.engine = engine;
 		try {
 			bomb = TextureLoader.getTexture("PNG", new FileInputStream("res/bomb.png"));
+			reticule = TextureLoader.getTexture("PNG", new FileInputStream("res/reticule.png"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -130,24 +135,31 @@ public class OverlayState implements GameState {
 				
 				// Calculate and format time remaining
 				if(data.getStartTime() > 0) {
-				    
-				    // Draw artist and title of song
-					f24.drawString(
-							BORDER_WIDTH,
-							Globals.window_height - BORDER_WIDTH + 10, 
-							data.getAnalysis().get(0).getArtist() + " - " +
-							data.getAnalysis().get(0).getTitle()
-						);
+					
 					if(! data.isPaused())
 						remaining.setTime(
 								data.getAnalysis().get(0).getDuration()
 								 - (System.currentTimeMillis()
 								 - data.getStartTime())
 							);
+					
 					f24.drawString(
 							Globals.window_width - 120,
 							Globals.window_height - BORDER_WIDTH + 10,
 							new SimpleDateFormat("mm:ss").format(remaining)
+						);
+					
+
+					
+				    String artist = data.getAnalysis().get(0).getArtist();
+				    String title = data.getAnalysis().get(0).getTitle();
+				    
+				    // Draw artist and title of song
+					f24.drawString(
+							BORDER_WIDTH,
+							Globals.window_height - BORDER_WIDTH + 10, 
+							((artist != null) ? artist : "Unknown Artist") + " - " + 
+							((title != null) ? title : "Un-named Song")
 						);
 				}
 				
@@ -161,10 +173,9 @@ public class OverlayState implements GameState {
 		    			);
 
 			    	final String cont1 = "Press 'P' to resume";
-			    	FontManager.getManager().getFont(18f)
-			    		.drawString(
-			    				Globals.window_width/2 - (cont1.length() * FONT_18PT) /2, 
-			    				Globals.window_height - BORDER_WIDTH + 10, 
+			    	f24.drawString(
+			    				Globals.window_width/2 - (cont1.length() * FONT_24PT) /2, 
+			    				BORDER_WIDTH/2 + 30, 
 			    				cont1, 
 			    				Color.orange
 			    			);
@@ -177,44 +188,10 @@ public class OverlayState implements GameState {
 						Globals.window_height - BORDER_WIDTH + 10,
 						"Bombs:"
 					);
-				
-			    // Draw scaled bombs
-				final float scale = 0.2f;
-				final float x_start = Globals.window_width - 260;
-				final float spacing = 5f;
-				final float y = Globals.window_height - BORDER_WIDTH + 10;
-			    for(int i=0; i<data.getBombs(); i++) {
-			    	float x = x_start + (i * bomb.getTextureWidth() * scale) + spacing;
-			    	
-					// Render Logo
-					glPushMatrix();
-						Color.white.bind();
-						bomb.bind();
-				        
-				        glBegin(GL_QUADS);
-							glTexCoord2f(0,0);
-							glVertex2f(
-									x,
-									y
-								);
-							glTexCoord2f(1,0);
-							glVertex2f(
-									x + bomb.getTextureWidth() * scale, 
-									y
-								);
-							glTexCoord2f(1,1);
-							glVertex2f(
-									x + bomb.getTextureWidth()  * scale, 
-									y + bomb.getTextureHeight() * scale
-								);
-							glTexCoord2f(0,1);
-							glVertex2f(
-									x, 
-									y + bomb.getTextureHeight() * scale
-								);
-				        glEnd();
-					glPopMatrix();
-			    }
+			    
+			    renderBombs();
+			    
+			    renderReticule();	// Last (over)
 			    
 				glDisable(GL_TEXTURE_2D);
 			glPopMatrix();
@@ -229,7 +206,81 @@ public class OverlayState implements GameState {
 	
 	
 	
-	public void renderProgress() {
+	private void renderReticule() {
+		final float scale = 0.5f;
+		// Render Targeting reticule
+		glPushMatrix();
+			Color.white.bind();
+			reticule.bind();
+	        
+	        glBegin(GL_QUADS);
+				glTexCoord2f(0,0);
+				glVertex2f(
+						mouse_x,
+						mouse_y
+					);
+				glTexCoord2f(1,0);
+				glVertex2f(
+						mouse_x + reticule.getTextureWidth() * scale, 
+						mouse_y
+					);
+				glTexCoord2f(1,1);
+				glVertex2f(
+						mouse_x + reticule.getTextureWidth()  * scale, 
+						mouse_y + reticule.getTextureHeight() * scale
+					);
+				glTexCoord2f(0,1);
+				glVertex2f(
+						mouse_x, 
+						mouse_y + reticule.getTextureHeight() * scale
+					);
+	        glEnd();
+		glPopMatrix();
+	}
+	
+	
+	private void renderBombs() {
+	    // Draw scaled bombs
+		final float scale = 0.2f;
+		final float x_start = Globals.window_width - 260;
+		final float spacing = 5f;
+		final float y = Globals.window_height - BORDER_WIDTH + 10;
+	    for(int i=0; i<data.getBombs(); i++) {
+	    	float x = x_start + (i * bomb.getTextureWidth() * scale) + spacing;
+	    	
+			// Render Bombs
+			glPushMatrix();
+				Color.white.bind();
+				bomb.bind();
+		        
+		        glBegin(GL_QUADS);
+					glTexCoord2f(0,0);
+					glVertex2f(
+							x,
+							y
+						);
+					glTexCoord2f(1,0);
+					glVertex2f(
+							x + bomb.getTextureWidth() * scale, 
+							y
+						);
+					glTexCoord2f(1,1);
+					glVertex2f(
+							x + bomb.getTextureWidth()  * scale, 
+							y + bomb.getTextureHeight() * scale
+						);
+					glTexCoord2f(0,1);
+					glVertex2f(
+							x, 
+							y + bomb.getTextureHeight() * scale
+						);
+		        glEnd();
+			glPopMatrix();
+	    }
+	}
+	
+	
+	private void renderProgress() {
 
 		float length = (Globals.window_width - BORDER_WIDTH*2);
 		
@@ -291,7 +342,11 @@ public class OverlayState implements GameState {
 	
 	
 	@Override
-	public void mouseInput(int x, int y, boolean leftDown, boolean rightDown) { }
+	public void mouseInput(int x, int y, boolean leftDown, boolean rightDown) {
+		
+		this.mouse_x = x;
+		this.mouse_y = Display.getHeight() - y - (reticule.getTextureHeight() /2);		// Textures are rendered inverted because slick-util is terrible
+	}
 
 	
 	

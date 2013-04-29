@@ -1,7 +1,7 @@
 /**
  * 
  */
-package csc3202.Spawners;
+package csc3202.Entities.Spawners;
 
 import static csc3202.Engine.Globals.FIELD_HEIGHT;
 import static csc3202.Engine.Globals.FIELD_WIDTH;
@@ -43,7 +43,7 @@ public class PowerupSpawner extends Spawner {
 				
 				Thread.sleep(Globals.POWERUP_DURATION);
 			} catch (InterruptedException e) {
-				System.err.println(e.getMessage());
+				System.out.println("++ Powerup " + e.getMessage());
 			}
 		}
 		System.out.println("<< Powerup Spawner thread exit");

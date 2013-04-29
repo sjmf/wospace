@@ -63,7 +63,7 @@ public class Globals {
 	
 	
 	// Destruction animation constants
-	public static final float ALPHA_FADE = 0.001f;								// Alpha fade speed 
+	public static final float ALPHA_FADE = 0.002f;								// Alpha fade speed 
 	public static final float ROTATE_SPEED = 0.05f;								// Rotate fade speed
 	public static final float FALL_SPEED = 0.06f;								// Fall speed for fall-based destruction transforms
 
@@ -77,7 +77,7 @@ public class Globals {
 	
 	
 	// Ship data
-	public static final int LIVES = 3;
+	public static final int LIVES = 5;
 	public static final float SHIP_SPEED = 0.15f;
 	public static final float SHIP_VELOCITY_INC = 0.01f;
 	public static final int SHIP_FIRE_RATE = 120;								// ms
@@ -89,23 +89,27 @@ public class Globals {
 	public static final int BOMBS_INITIAL_SUPPLY = 1;
 	public static final int MAX_BOMBS = 4;
 	
-	public static final int POWERUP_FIRE_RATE_INC = 40;							// decrease ship fire delay by 20ms
-	public static final int POWERUP_SPAWN_RATE = 20000;							// ms
-	public static final int POWERUP_DURATION = 10000;							// 10 s
+	public static final int POWERUP_FIRE_RATE_INC = 80;							// decrease ship fire delay by 80ms
+	public static final int POWERUP_SPAWN_RATE = 20000;							// 20 s
+	public static final int POWERUP_DURATION = 9000;							// 9 s
 	public static final float POWERUP_SPEED = 1.6f;
+	
+	public static final int WAVE_LENGTH = 12000;
 	
 	
 	// Entity model paths
-	public static final String ENEMY_MODEL_PATH =  "res/models/box.obj";
-	public static final String LASER_MODEL_PATH = "res/models/laser.obj";
-	public static final String SHIP_MODEL_PATH = "res/models/ship.obj";
-	public static final String BOMB_MODEL_PATH = "res/models/bomb.obj";
+	public static final String ENEMY_MODEL_PATH =  	"res/models/box.obj";
+	public static final String TRACKER_MODEL_PATH = "res/models/pyramid.obj";
+	public static final String BLASTER_MODEL_PATH = "res/models/blaster.obj";
+	public static final String LASER_MODEL_PATH = 	"res/models/laser.obj";
+	public static final String SHIP_MODEL_PATH = 	"res/models/ship.obj";
+	public static final String BOMB_MODEL_PATH = 	"res/models/bomb.obj";
 	public static final String POWERUP_MODEL_PATH = "res/models/power.obj";
 	
 	
 	// Base game speed by which others are multiplied
 	public static volatile float game_speed = 0f;
-	public static volatile long spawn_rate = 500l;	// Spawn threadsleep
+	public static volatile long spawn_rate = 450l;	// Spawn threadsleep
 
 	
 	// Not meaningful to instantiate this class

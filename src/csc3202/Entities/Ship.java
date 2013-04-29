@@ -14,6 +14,7 @@ import csc3202.Engine.OBJLoader.OBJManager;
 import java.util.ArrayList;
 
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 /**
  * The player Ship/tank/turret/plane/whatever
@@ -33,6 +34,8 @@ public class Ship extends Entity {
 
 	private static final Vector3f SHIP_START = 
 			new Vector3f(FIELD_WIDTH / 2, 0.0f, -FIELD_HEIGHT / 2);
+	
+	private static final Vector4f L_COLOUR = new Vector4f(255.0f, 0.0f, 0.0f, 0.8f);
 	
 	// initially invulnerable to prevent death in first second or so
 	private ShipState state = ShipState.INVINCIBLE;
@@ -97,12 +100,12 @@ public class Ship extends Entity {
 			l = new Laser(new Vector3f(x_l, 0, y_r));
 			r = new Laser(new Vector3f(x_r, 0, y_l));
 			
-			l.colour(255.0f, 0.0f, 0.0f);
+			l.setColour(L_COLOUR);
 			l.setDirection((Vector3f) Utils.invertVec3(this.getOrientation()).scale(LASER_SPEED));
 			l.setOrientation(Utils.invertVec3(this.getOrientation()));
 			lasers.add( l );
 			
-			r.colour(255.0f, 0.0f, 0.0f);
+			r.setColour(L_COLOUR);
 			r.setDirection((Vector3f) Utils.invertVec3(this.getOrientation()).scale(LASER_SPEED));
 			r.setOrientation(Utils.invertVec3(this.getOrientation()));
 			lasers.add( r );
@@ -160,6 +163,8 @@ public class Ship extends Entity {
 			
 			return DONE;	// Destroyed animation complete
 		}
+		
+//		System.out.println(this.getOrientation() + "\t" + this.getDirection());
 		
 		return SUCCESS;
 	}

@@ -5,7 +5,6 @@ import static csc3202.Engine.Globals.*;
 
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
-import org.lwjgl.util.vector.Vector4f;
 
 import csc3202.Engine.*;
 import csc3202.Engine.Interfaces.*;
@@ -18,10 +17,10 @@ import csc3202.Engine.OBJLoader.OBJModel;
  * @version Oct 2012
  */
 public class Laser extends Entity {
-	
-	private Vector4f colour = new Vector4f(1.0f,1.0f,1.0f,0.8f);
-	
+		
 	private OBJModel model;
+	
+	public static final float ALPHA = 0.6f;
 	
 	/**
 	 * Constructor taking initial parameter data
@@ -43,15 +42,15 @@ public class Laser extends Entity {
 	 * Possible improvement: make laser a light source
 	 */
 	public int render() {
-		
+		float theta = (float) Math.atan2(this.getOrientation().x, this.getOrientation().z);
 		glPushAttrib(GL_CURRENT_BIT | GL_LIGHTING_BIT );
 		
 		glDisable(GL_LIGHTING);
-		glColor4f(colour.x, colour.y, colour.z, colour.w);
+		glColor4f(super.colour.x, colour.y, colour.z, ALPHA);	// Ignore alpha overrides
 		
 		glPushMatrix();
 			glTranslatef(this.getPosition().x, this.getPosition().y, this.getPosition().z);
-			glRotatef((float) Math.atan2(this.getOrientation().x, this.getOrientation().z) * RAD, 0, 1, 0);		// Rotate to face mouse
+			glRotatef(theta * RAD, 0, 1, 0);
 			model.render();
 		glPopMatrix();
 		
@@ -97,14 +96,4 @@ public class Laser extends Entity {
 		
 		return SUCCESS;
 	}
-
-
-
-	public void colour(float r, float g, float b) {
-		
-		this.colour.x = r;
-		this.colour.y = g;
-		this.colour.z = b;
-	}
-
 }

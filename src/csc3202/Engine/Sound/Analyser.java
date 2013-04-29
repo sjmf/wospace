@@ -11,6 +11,8 @@ import java.util.Map;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
+import javax.swing.JOptionPane;
 
 import org.vamp_plugins.*;
 import org.vamp_plugins.PluginLoader.LoadFailedException;
@@ -480,8 +482,16 @@ public class Analyser {
 			e.printStackTrace();
 		} catch (LoadFailedException e) {
 			e.printStackTrace();
-		} catch (Exception e) {
+		} catch (UnsupportedAudioFileException e) {
+			// Only one of these I've ever seen thrown
 			e.printStackTrace();
+
+			JOptionPane.showMessageDialog(null,
+				    "Sorry, can't read this MP3. Does it play in a normal player?\n" +
+				    "Error message received was: " +
+				    e.getLocalizedMessage(),
+				    "MP3 Read Error",
+				    JOptionPane.ERROR_MESSAGE);
 		}
 		
 		return beats;

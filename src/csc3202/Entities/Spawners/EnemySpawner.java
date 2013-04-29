@@ -1,7 +1,7 @@
 /**
  * 
  */
-package csc3202.Spawners;
+package csc3202.Entities.Spawners;
 
 import static csc3202.Engine.Globals.*;
 
@@ -13,7 +13,9 @@ import csc3202.Engine.Globals;
 import csc3202.Engine.Utils;
 import csc3202.Engine.AI.Spawner;
 import csc3202.Engine.Interfaces.Entity;
+import csc3202.Entities.BlasterEnemy;
 import csc3202.Entities.Enemy;
+import csc3202.Entities.TrackingEnemy;
 
 /**
  * @author sam
@@ -23,41 +25,90 @@ public class EnemySpawner extends Spawner {
 
 	/** Pseudorandom generator for enemy position on screen edge */
 	private Random rand;
+	
+	private byte wave = 0;
+	private long wave_start;
     
     /** Observer pattern spawner class  */
 	public EnemySpawner() {
 		rand = new Random();
 	}
 
-	/* 
+	/**
 	 * @see java.lang.Runnable#run()
 	 */
 	@Override
 	public void run() {
 		System.out.println(">> Enemy Spawner thread started");
 		
+		wave_start = System.currentTimeMillis();
+		
+		long now;
 		while (running) {
 			try {
-				// Tell observers that there are changes
-				setChanged();
-				notifyObservers(makeEnemies());		// Don't mind me, just making enemies...
+				Enemy[] enemies = makeEnemies();
+
+				// Check and increment wave after wave length
+				now = System.currentTimeMillis();
+				if(now > wave_start + WAVE_LENGTH) {
+					wave++;
+					wave_start = now;
+				}
 				
-				Thread.sleep(Globals.spawn_rate);	// Set by beats?
-			} catch (InterruptedException e) {
-				System.err.println(e.getMessage());
+//				System.out.println("Wave:" + wave + "\t" + wave_start + "\t" + now + "\t" + (now - wave_start));
+
+				setChanged();													// Tell observers that there are changes
+				notifyObservers(enemies);										// Don't mind me, just making enemies...
+				
+				Thread.sleep(Globals.spawn_rate);
+			} 
+			catch (InterruptedException e) {
+				System.out.println("++ Spawner " + e.getMessage());
 			}
 		}
+		
 		System.out.println("<< Enemy Spawner thread exit");
 	}
 	
 	
+	/**
+	 * Generate enemies based on state machine
+	 * @return
+	 */
 	private Enemy[] makeEnemies() {
-	
-		Enemy e = new Enemy();
 		
-		e.setScore(10);
+		Enemy e = null;
 		
-		// Setup start position
+		switch(wave) {						// State machine stuff for waves
+		case 0:
+			e = new Enemy();
+			e.setScore(10);
+			break;
+		case 1:
+			if(rand.nextInt(2) == 0) {		// Chance of either tracker or regular
+				e = new Enemy();
+				e.setScore(10);
+			} else {
+				e = new TrackingEnemy();
+				e.setScore(20);
+			}
+			break;
+		case 2:
+			e = new TrackingEnemy();		// Trackers only
+			e.setScore(20);
+			break;
+		case 3:
+			e = new BlasterEnemy();			// Bomber
+			e.setScore(30);
+			wave = 0;
+			break;
+		default:
+			System.err.println("Spawner Thread Wave Error");
+			break;
+		}
+		
+		
+		// Set start position
 		int side = rand.nextInt(4);
 		
 		// Set position on start side
@@ -92,7 +143,7 @@ public class EnemySpawner extends Spawner {
 					-X_OFFSET, 0, 
 					-rand.nextInt(FIELD_HEIGHT - X_OFFSET/2) - X_OFFSET/2) );
 			break;
-		case 3:					// From right
+		case 3:		// From right
 			e.setDirection( (Vector3f) Vector3f.add(
 					Utils.cloneVec3(Entity.LEFT),
 					new Vector3f(0, 0, (rand.nextFloat()-0.5f)),

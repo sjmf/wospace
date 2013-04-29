@@ -19,7 +19,7 @@ public class SpawnControl<T extends Entity> {
 	
 	private Spawner spawner;
 	private SpawnListener listener;
-	
+	private Thread thread;
 	
 	/**
 	 * Instantiate a spawner and all of its architecture
@@ -65,7 +65,7 @@ public class SpawnControl<T extends Entity> {
 		this.spawner = spawner;
 		listener = new SpawnListener();
 		spawner.addObserver(listener);
-		Thread thread = new Thread(spawner);
+		thread = new Thread(spawner);
 		thread.start();
 	}
 	
@@ -74,8 +74,10 @@ public class SpawnControl<T extends Entity> {
 	 * Aww.
 	 */
 	public void stop() {
-		if(this.spawner != null)
+		if(this.spawner != null) {
 			spawner.stop();
+			thread.interrupt();
+		}
 		spawner = null;
 	}
 	

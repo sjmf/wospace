@@ -13,7 +13,6 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 
 import org.lwjgl.LWJGLException;
 import org.lwjgl.Sys;
@@ -56,9 +55,6 @@ public class Engine implements StateController {
 	/** Render in wireframe mode **/
 	private boolean wireframe = false;
 	
-	/** Random number generator used by various program classes **/
-	public static final Random rand = new Random( Sys.getTime() );
-
 	
 	/**
 	 * Constructor
@@ -240,9 +236,9 @@ public class Engine implements StateController {
 					case Keyboard.KEY_F11:
 						tog_fullscreen = true;
 						break;
-					case Keyboard.KEY_F2:
-						wireframe = !wireframe;
-						break;
+//					case Keyboard.KEY_F2:
+//						wireframe = !wireframe;
+//						break;
 					default:
 						break;
 				}
@@ -265,7 +261,7 @@ public class Engine implements StateController {
 		
 		Display.setTitle(Globals.WINDOW_TITLE);
 		
-//		Mouse.setGrabbed(true);		// Hide mouse pointer
+		Mouse.setGrabbed(true);		// Hide mouse pointer
 		Globals.coord_ratio_x = Globals.window_width / Globals.FIELD_WIDTH;
 		Globals.coord_ratio_y = Globals.window_height / Globals.FIELD_HEIGHT;
 		
@@ -423,11 +419,11 @@ public class Engine implements StateController {
 		
 		float[] model = {0.1f, 0.1f, 0.1f, 1.0f};
 
-		float[] ambient = {0.1f, 0.1f, 0.1f, 1.0f};
+		float[] ambient = {0.05f, 0.05f, 0.05f, 1.0f};
 		float[] diffuse = {1.0f, 1.0f, 1.0f, 1.0f};
 		float[] specular = {0.8f, 0.8f, 0.8f, 1.0f};
-		float[] position0 = {10.0f, 10.0f, 10.0f, 0.0f};
-		float[] position1 = {-10.0f, -10.0f, -10.0f, 0.0f};
+		float[] position0 = {10.0f, Globals.FIELD_WIDTH, 10.0f, 0.0f};
+		float[] position1 = {-10.0f, 0.0f, -Globals.FIELD_HEIGHT, 0.0f};
 		
         glShadeModel(GL_SMOOTH);
         glEnable(GL_DEPTH_TEST);

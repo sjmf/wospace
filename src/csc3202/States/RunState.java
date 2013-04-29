@@ -14,10 +14,13 @@ import csc3202.Engine.Sound.MP3ToPCM;
 import csc3202.Entities.*;
 import csc3202.Entities.Powerup.PType;
 import csc3202.Entities.Ship.ShipState;
-import csc3202.Spawners.*;
+import csc3202.Entities.Spawners.*;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+
+import javax.sound.sampled.UnsupportedAudioFileException;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.util.vector.Vector2f;
@@ -36,7 +39,7 @@ public class RunState implements GameState {
 		STARTING, 		// When a new round is starting
 		PLAYING,		// Round in progress
 		DEFEATED,		// An invasion was defeated (spawn another)
-		GAME_OVER		// The game is over
+		GAME_OVER		// The game is over (either won/lost)
 	};
 
 	private PlayState state = PlayState.STARTING;
@@ -95,7 +98,11 @@ public class RunState implements GameState {
 	public RunState(GameData data) {
 		
 		this.data = data;
-		this.mp3 = new MP3ToPCM(data.getMp3File());
+		try {
+			this.mp3 = new MP3ToPCM(data.getMp3File());
+		} catch (UnsupportedAudioFileException | IOException e) {
+			e.printStackTrace();
+		}
 		
 		// This is a consequence of sticking things in lists, not Maps. :/
 		// This will only iterate maximum twice so it's fine
@@ -162,6 +169,8 @@ public class RunState implements GameState {
 	 * Update the state of play.
 	 * Ordering of code in this method is very important!
 	 * 
+	 * I'd love to move this to a threaded/bucketed architecture at some point
+	 * 
 	 * @return SUCCESS if Success, WAIT if paused
 	 * @see Engine.Interfaces.GameState#update(long)
 	 */
@@ -213,6 +222,14 @@ public class RunState implements GameState {
 				Enemy e = ei.next();
 				if(l.collides(e)) {
 					if(e.damage()) {											// Returns true when killed
+						
+						if(e instanceof BlasterEnemy)							// Check for bomb and explode it
+							ship_lasers.addAll(Utils.makeExplosion(
+									e.getPosition(), 
+									new Vector3f(1.0f, 0.2f, 1.0f),
+									32
+								));
+						
 						destroyed_enemies.add(e);								// Add to destruction animation stack
 						e.destroy();
 						ei.remove();											// Remove enemy
@@ -253,13 +270,13 @@ public class RunState implements GameState {
 		}
 
 		///////////////////////////////////////////////////////////////////////
-		// Ship collision check
+		// Ship collision check and entity updates
 		int collided = 0;
 		
 		li = enemy_lasers.iterator();
 		while(li.hasNext())	{
 		    Laser l = li.next();
-		    if(l.move((delta)) == -1) 
+		    if(l.move((delta)) == DONE) 
 		    	li.remove();		
 			
 			// Check ship collision with fire.
@@ -273,9 +290,20 @@ public class RunState implements GameState {
 		
 		ei = enemies.iterator();
 		while(ei.hasNext()) {
-
 			Enemy e = ei.next();
-			e.update(delta);
+			
+			if(e instanceof TrackingEnemy) {									// Enemy type specific code
+				if(state == PlayState.GAME_OVER) {
+					((TrackingEnemy) e).setShipPos(new Vector3f(Globals.FIELD_WIDTH / 2, 0, Globals.FIELD_HEIGHT)); // Send off the bottom
+				} else {
+					((TrackingEnemy) e).setShipPos(ship.getPosition());
+				}
+			} else if(e instanceof BlasterEnemy) {
+				((BlasterEnemy) e).fireLaser(enemy_lasers);
+				((BlasterEnemy) e).fireLaser(ship_lasers);
+			}
+			e.update(delta);													// General AI updates
+			
 			if(ship.collides(e) && ship.getState() != Ship.ShipState.INVINCIBLE ) {
 				collided++;	// Ship collision with enemy
 
@@ -295,14 +323,13 @@ public class RunState implements GameState {
 			ship.setDirection(Utils.cloneVec3(Entity.NONE));					// Workaround for ship continuing in direction on death
 
 			ship.destroy();														// Call destroy on ship. Note that this only triggers the destruction animation.
-			
 			data.resetMultiplier();
 			
 			// Death explosion! (orange)
 			ship_lasers.addAll(Utils.makeExplosion(
 					ship.getPosition(), 
 					new Vector3f(1.0f, 0.5f, 0f),
-					64
+					128
 				));
 		}
 		
@@ -313,14 +340,37 @@ public class RunState implements GameState {
 		// Check Win/Loose conditions
 		long elapsed = (System.currentTimeMillis() - data.getStartTime());
 		if(elapsed >= duration) {												// Are we Bi-Winning?
-			if(!game_won) {
+			if(!game_won && !game_over) {
 
+				ship_lasers.addAll(Utils.makeExplosion(
+						ship.getPosition(), 
+						new Vector3f(1.0f, 0.1f, 0.1f),
+						128
+					));
+				
 				stopSpawners();
 				data.setStartTime(0);
 				data.setGameWon(true);
 				engine.pushState(new GameOverState(data).init(engine));			// GameOver state also handles winning
 				game_won = true;
 				state = PlayState.GAME_OVER;
+				
+				ei = enemies.iterator();										// Remove all enemies
+				while(ei.hasNext()) {
+					Enemy e = ei.next();
+					
+					destroyed_enemies.add(e);									// Add to destruction animation stack
+					e.destroy();
+					ei.remove();
+					data.addScore(e.getScore());								// Enemies left are bonus score fodder
+				}
+				
+				pi = powerups.iterator();										// Stop stray powerups floating around after game-over
+				while (pi.hasNext()) {
+					Powerup p = pi.next();
+					p.destroy();
+					pi.remove();
+				}
 			}
 			
 			return DONE;
@@ -330,11 +380,11 @@ public class RunState implements GameState {
 		if(data.getLives() < 0) {
 			if(!game_over) {													// Game Over, man! Game over!
 
-				Utils.makeExplosion(
+				ship_lasers.addAll(Utils.makeExplosion(
 						ship.getPosition(), 
 						new Vector3f(1.0f, 0.1f, 0.1f),
 						128
-					);
+					));
 				
 				stopSpawners();
 				data.setStartTime(0);
@@ -541,7 +591,6 @@ public class RunState implements GameState {
 //			"\n_ANGLE:  " + angle * RAD + "\n"
 //		);
 		
-		camera.mouseInput();
 		
 		if(leftDown)
 			fire=true;
@@ -585,14 +634,11 @@ public class RunState implements GameState {
 			case Keyboard.KEY_S:
 				keydown_down = true;
 				break;
-			case Keyboard.KEY_SPACE:
-				fire = true;
-				break;
 			
-			// Control key bindings
-			case Keyboard.KEY_F3:
-				Hitbox.render = !Hitbox.render;									// Toggle hitbox rendering on/off
-				break;
+			// DEBUG key bindings
+//			case Keyboard.KEY_F3:
+//				Hitbox.render = !Hitbox.render;									// Toggle hitbox rendering on/off
+//				break;
 			case Keyboard.KEY_F4:												// Fall through to Pause
 			case Keyboard.KEY_P:
 				
@@ -608,10 +654,6 @@ public class RunState implements GameState {
 				data.reset();
 				engine.changeState(new MenuState(data).init(engine));
 				break;
-				
-			case Keyboard.KEY_END:												// I-win button for testing
-				data.setGameWon(true);
-				data.setStartTime(0);
 			default:
 				break;
 			}
@@ -634,9 +676,6 @@ public class RunState implements GameState {
 			case Keyboard.KEY_DOWN:
 			case Keyboard.KEY_S:
 				keydown_down = false;
-				break;
-			case Keyboard.KEY_SPACE:
-				fire = false;
 				break;
 			default:
 				break;

@@ -22,6 +22,7 @@ import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
 import org.newdawn.slick.Color;
 import org.newdawn.slick.TrueTypeFont;
@@ -110,6 +111,8 @@ public class MenuState implements GameState, Observer {
 
 		// Filechooser has returned- set up a new state
 		if (file != null) {
+			Mouse.setGrabbed(true);	// Re-grab mouse
+			
 			data.setMp3File(file);
 			engine.changeState(new LoaderState(data).init(engine));
 			return SUCCESS;

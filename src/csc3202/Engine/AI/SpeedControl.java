@@ -88,7 +88,7 @@ public class SpeedControl {
 			} catch (InterruptedException e1) {
 				e1.printStackTrace();
 			}
-    		Globals.game_speed = 5f;
+    		Globals.game_speed = 0.1f;
     		System.out.println("<< SpeedController thread exit");
         }
     	

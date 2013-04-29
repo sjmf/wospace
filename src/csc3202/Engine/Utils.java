@@ -13,6 +13,7 @@ import java.util.ArrayList;
 
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Vector4f;
 
 import csc3202.Engine.Interfaces.Entity;
 import csc3202.Entities.Laser;
@@ -75,7 +76,7 @@ public class Utils {
 		
 		ArrayList<Laser> explosion = new ArrayList<Laser>();
 		
-		float inc = (float) ((2 * Math.PI) / segments);								// Spawn 64 lasers (2^6)
+		float inc = (float) ((2 * Math.PI) / segments);							// Spawn 64 lasers (2^6)
 		for(int i=0; i<segments; i++) {
 			float rad = i * inc; 												// Calculate rotation in radians
 			
@@ -88,7 +89,7 @@ public class Utils {
 			Laser l = new Laser(origin);										// New Laser with position at origin
 			l.setDirection((Vector3f) Utils.cloneVec3(dir).scale(LASER_SPEED));	// direction
 			l.setOrientation(dir);												// and orientation
-			l.colour(colour.x, colour.y, colour.z);
+			l.setColour(new Vector4f(colour.x, colour.y, colour.z, 0.8f));
 			
 			explosion.add(l);
 		}
@@ -144,7 +145,8 @@ public class Utils {
 	
 
 	/**
-	 * Invert the x/z coordinates of a vec3
+	 * Invert the x/z coordinates of a vec3 - 
+	 * i.e. convert an orientation into a direction
 	 * @param vector
 	 * @return
 	 */

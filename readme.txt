@@ -23,11 +23,7 @@ CONTROLS
 ESC	- Close the game
 F11	- Fullscreen
 WASD	- Movement
-Arrows	- Movement
-SPACE	- FIRE
-
-
-Included CreativeCommons Licenced Music
-http://freemusicarchive.org/music/Rushjet1/BACKUP11_-_Platine_festival_Compilation/06_Return_to_Control
+Mouse L - Fire
+Mouse R - Bomb
 
 

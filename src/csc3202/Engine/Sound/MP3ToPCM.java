@@ -31,43 +31,29 @@ public class MP3ToPCM {
 	
 	/**
 	 * Construct a RAW PCM MP3 decoder
+	 * @throws IOException 
+	 * @throws UnsupportedAudioFileException 
 	 */
-	public MP3ToPCM(String filename) {
+	public MP3ToPCM(String filename) throws UnsupportedAudioFileException, IOException {
 		
 		MpegAudioFileReader reader = new MpegAudioFileReader();
-		boolean initOK = false;
-		try {
-			this.in = reader.getAudioInputStream(new File(filename));
-			
-			this.baseFormat    = in.getFormat();
-			this.decodedFormat = new AudioFormat(
-					AudioFormat.Encoding.PCM_SIGNED,     // encoding            the audio encoding technique
-					baseFormat.getSampleRate(),          // sampleRate          the number of samples per second
-					16,                                  // sampleSizeInBits    the number of bits in each sample
-					baseFormat.getChannels(),            // channels            the number of channels (1 for mono, 2 for stereo, and so on)
-					baseFormat.getChannels() * 2,        // frameSize           the number of bytes in each frame
-					baseFormat.getSampleRate(),          // frameRate           the number of frames per second
-					false                                // bigEndian           true= big-endian byte order (false means little-endian)
-				);
-			
-			this.metadata = reader.getAudioFileFormat(new File(filename)).properties();
+	
+		this.in = reader.getAudioInputStream(new File(filename));
+		
+		this.baseFormat    = in.getFormat();
+		this.decodedFormat = new AudioFormat(
+				AudioFormat.Encoding.PCM_SIGNED,     // encoding            the audio encoding technique
+				baseFormat.getSampleRate(),          // sampleRate          the number of samples per second
+				16,                                  // sampleSizeInBits    the number of bits in each sample
+				baseFormat.getChannels(),            // channels            the number of channels (1 for mono, 2 for stereo, and so on)
+				baseFormat.getChannels() * 2,        // frameSize           the number of bytes in each frame
+				baseFormat.getSampleRate(),          // frameRate           the number of frames per second
+				false                                // bigEndian           true= big-endian byte order (false means little-endian)
+			);
+		
+		this.metadata = reader.getAudioFileFormat(new File(filename)).properties();
 
-			this.audioIn = AudioSystem.getAudioInputStream(decodedFormat, in);
-			
-			initOK = true;
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (UnsupportedAudioFileException e) {
-			e.printStackTrace();
-		} finally {
-			if(initOK)
-				return;
-			this.in = null;
-			this.baseFormat = null;
-			this.decodedFormat = null;
-			this.metadata = null;
-			this.audioIn = null;
-		}
+		this.audioIn = AudioSystem.getAudioInputStream(decodedFormat, in);
 	}
 	
 	
