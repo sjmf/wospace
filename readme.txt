@@ -1,3 +1,29 @@
+
+A WASTE OF SPACE
+===============
+
+This game is an audio-reactive "asteroids" style game which analyses your MP3s to produce a 
+playable game. The music analysis is based on the VAMP plugin library, and the game is written
+in Java 6 with OpenGL 1.1, meaning it should run pretty much everywhere.
+
+Submitted in partial requirements of the CSC3202 Games Development at Newcastle University.
+
+- Sam Mitchell Finnigan
+   Apr 29th 2013
+
+
+
+CONTROLS
+========
+
+ESC	- Close the game
+F11	- Fullscreen
+WASD	- Movement
+Mouse L - Fire
+Mouse R - Bomb
+
+
+
 RUNNING THE GAME
 ================
 
@@ -5,6 +31,8 @@ Launch the game by running the provided .sh file for Linux, or .bat file for Win
 will set the state up for the application so you don't have to.
 
 If you really want to know what's going on, or the .bat doesn't work, here's how to do it manually:
+
+
 
 
 RUNNING MANUALLY
@@ -30,14 +58,7 @@ choose this option- something like:
 
 	java -Djava.library.path='C:\WOSGame\native\windows\' -jar 'C:\WOSGame\wospace.jar'
 
+Or you can just click "run.bat". :)
 
-CONTROLS
-========
-
-ESC	- Close the game
-F11	- Fullscreen
-WASD	- Movement
-Mouse L - Fire
-Mouse R - Bomb
 
 
