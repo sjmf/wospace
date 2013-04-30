@@ -58,10 +58,9 @@ public class ThreadedAnalyser {
 			System.out.println(">> Analyser thread started");
 			
 			setChanged();
-			events = new AudioEventResponse(Analyser.run(analyser, filename));
+			events = new AudioEventResponse(analyser.run(analyser, filename));
 			if(events == null) {
-				System.err.println("Oh no! Analyser returned null!");
-				System.exit(1);
+				notifyObservers(new Analyser.AnalyserException("Fatal: Analysis failed!"));
 			}
 			notifyObservers(events);
 		}
@@ -77,11 +76,13 @@ public class ThreadedAnalyser {
 	 */
 	private class AnalysisHandler implements Observer {
 
-		private AudioEventResponse resp = null;
+		private volatile AudioEventResponse resp = null;
 		@Override
 		public void update(Observable o, Object arg) {
 			if (arg instanceof AudioEventResponse) {
 				resp = ((AudioEventResponse) arg);
+			} else if(arg instanceof Analyser.AnalyserException) {
+				resp = new AudioEventResponse(null);
 			}
 		}
 		

@@ -8,3 +8,5 @@ bin/*
 Thumbs.db
 beatcache
 beatcache/*
+.lastDir
+res/scores.txt

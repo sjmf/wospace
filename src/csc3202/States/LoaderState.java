@@ -4,6 +4,8 @@ package csc3202.States;
 import static org.lwjgl.opengl.GL11.*;
 import static csc3202.Engine.Globals.*;
 
+import java.util.List;
+
 import org.lwjgl.input.Keyboard;
 import org.newdawn.slick.Color;
 import org.vamp_plugins.PluginLoader.LoadFailedException;
@@ -15,6 +17,7 @@ import csc3202.Engine.Globals;
 import csc3202.Engine.Interfaces.GameState;
 import csc3202.Engine.OBJLoader.OBJManager;
 import csc3202.Engine.OBJLoader.OBJModel;
+import csc3202.Engine.Sound.BeatFile;
 import csc3202.Engine.Sound.ThreadedAnalyser;
 
 
@@ -26,6 +29,10 @@ import csc3202.Engine.Sound.ThreadedAnalyser;
 public class LoaderState implements GameState {
 
 	private static final String TEXT = "LOADING";
+	private static final String ERROR= "Error :(";
+	private static final String ERR_LN1 = "Analysis failed. Press ESC to exit.";
+	private static final String ERR_LN2 = "Sorry! Let me know if this happens again. -S";
+	
 	private static final int LOADBAR_LEN = 10;
 	private static final int LOADBAR_UPDATE_DELAY = 100;						// every 100ms increment loadbar
 	private static final String LOADBAR_AUDIO_MSG = "Analysing beats";			// every 100ms increment loadbar
@@ -55,6 +62,7 @@ public class LoaderState implements GameState {
 	private boolean analysis_finished = false;
 	
 	private boolean skip_first = true;	// Skip first update in order to render a frame first (updates happen prior to rendering in the engine) 
+	private boolean error_state = false;
 	
 	private StringBuilder loadbar = new StringBuilder("-");
 	private long lastLoaderIncrement = 0;
@@ -93,24 +101,33 @@ public class LoaderState implements GameState {
 	@Override
 	public int update(long delta) {
 		
-		preload(engine);					// Start loadin' models & textures
-		
-		// Display "loading" while pre-loading models
-		if(OBJManager.getManager().isLoaded() && analysis_finished) {
-			OBJManager.getManager().useDisplayLists();
-
-			data.setAnalysis(analyser.getResult());
+		if(!error_state) {
+			preload(engine);					// Start loadin' models & textures
 			
-			// Push initial game states onto the stack maintained by Engine
-			engine.changeState(new RunState(data).init(engine));
-			engine.pushState(new OverlayState(data).init(engine));		// and Overlay states
-			
-			glColor3f(1f,1f,1f);			// Workaround for everything becoming last set colour after load
-			
+			// Display "loading" while pre-loading models
+			if(OBJManager.getManager().isLoaded() && analysis_finished) {
+				OBJManager.getManager().useDisplayLists();
+				
+				List<BeatFile> bf_list = analyser.getResult();
+				
+				if(bf_list != null) {
+					data.setAnalysis(bf_list);
+					// Push initial game states onto the stack maintained by Engine
+					engine.changeState(new RunState(data).init(engine));
+					engine.pushState(new OverlayState(data).init(engine));		// and Overlay states
+					
+					glColor3f(1f,1f,1f);			// Workaround for everything becoming last set colour after load
+					
+					return SUCCESS;
+				} else {
+					error_state = true;
+					
+					return FAILURE;
+				}
+			}
 			return SUCCESS;
 		}
-		
-		return SUCCESS;
+		return FAILURE;
 	}
 	
 	
@@ -199,17 +216,31 @@ public class LoaderState implements GameState {
 				glScalef(1.0f, -1.0f, 1.0f);
 				glTranslatef(0.0f, -Globals.window_height, 1.0f);
 				
-				FontManager.getManager().getFont(48f)
-					.drawString(Globals.window_width/2 - (TEXT.length() * Globals.FONT_48PT / 2), 
-								(Globals.window_height / 2) - 65f, TEXT, Color.orange);
-				
-				FontManager.getManager().getFont(24f)
-					.drawString(Globals.window_width/2 - (loadbar.toString().length() * Globals.FONT_24PT / 2), 
-								(Globals.window_height / 2), loadbar.toString(), Color.red);
-				
-				FontManager.getManager().getFont(18f)
-				.drawString(Globals.window_width/2 - (next_resource.toString().length() * Globals.FONT_18PT / 2), 
-							(Globals.window_height / 2) + 50f, next_resource.toString(), Color.white);
+				if(error_state) {
+					FontManager.getManager().getFont(48f)
+						.drawString(Globals.window_width/2 - (ERROR.length() * Globals.FONT_48PT / 2), 
+									(Globals.window_height / 2) - 65f, ERROR, Color.orange);
+					
+					FontManager.getManager().getFont(24f)
+						.drawString(Globals.window_width/2 - (ERR_LN1.toString().length() * Globals.FONT_24PT / 2), 
+									(Globals.window_height / 2), ERR_LN1.toString(), Color.white);
+					
+					FontManager.getManager().getFont(18f)
+						.drawString(Globals.window_width/2 - (ERR_LN2.toString().length() * Globals.FONT_18PT / 2), 
+									(Globals.window_height / 2) + 50f, ERR_LN2.toString(), Color.white);
+				} else {
+					FontManager.getManager().getFont(48f)
+						.drawString(Globals.window_width/2 - (TEXT.length() * Globals.FONT_48PT / 2), 
+									(Globals.window_height / 2) - 65f, TEXT, Color.orange);
+					
+					FontManager.getManager().getFont(24f)
+						.drawString(Globals.window_width/2 - (loadbar.toString().length() * Globals.FONT_24PT / 2), 
+									(Globals.window_height / 2), loadbar.toString(), Color.red);
+					
+					FontManager.getManager().getFont(18f)
+					.drawString(Globals.window_width/2 - (next_resource.toString().length() * Globals.FONT_18PT / 2), 
+								(Globals.window_height / 2) + 50f, next_resource.toString(), Color.white);
+				}
 				
 			glPopMatrix();
 

@@ -29,7 +29,7 @@ public class Analyser {
 	public static final String AMP_PLUGIN =  "vamp-example-plugins:amplitudefollower";
 	
 	/** Exception thrown when analysis fails, for whatever reason */
-	public class AnalyserException extends Exception {
+	public static class AnalyserException extends Exception {
 	    private static final long serialVersionUID = -7896917649872471663L;
 
 		public AnalyserException(String message) {
@@ -387,11 +387,13 @@ public class Analyser {
 	 * Analyse the MP3 file at filename using the list of plugins provided 
 	 * @throws Exception 
 	 */
-	public static List<BeatFile> run(Analyser a, String filename) {
+	public List<BeatFile> run(Analyser a, String filename) {
 			
 		System.out.println("File:\n" + filename + "\n");
 		
 		List<BeatFile> beats = new ArrayList<BeatFile>();
+		String error = null;
+		String e_localised_msg = null;
 		
 		try {
 			a.init();
@@ -472,37 +474,47 @@ public class Analyser {
 				
 				if(a.isInterrupted()) break;
 			}
-		} catch(FileNotFoundException e) {
+		} 	
+		catch(FileNotFoundException e) {										// Begin the great catch-block of DOOM
+			error = "File not found:" + filename;
+			e_localised_msg = e.getLocalizedMessage();
 			e.printStackTrace();
-		} catch (IOException e) {
+		} 
+		catch (IOException e) {
+			error = "Problem reading MP3 " + filename;
+			e_localised_msg = e.getLocalizedMessage();
 			e.printStackTrace();
-		} catch (LineUnavailableException e) {
+		} 
+		catch (LineUnavailableException e) {
+			error = "Problem reading MP3 " + filename;
+			e_localised_msg = e.getLocalizedMessage();
 			e.printStackTrace();
-		} catch (LoadFailedException e) {
+		} 
+		catch (LoadFailedException e) {
+			error = "Audio Analysis plugin failed to load!";
+			e_localised_msg = e.getLocalizedMessage();
 			e.printStackTrace();
 		} 
 		catch (AnalyserException e) {
+			error = "Can't find VAMP Analysis plugin on System Path!\n" +
+				    "Check the readme for details on this error.\n";
+			e_localised_msg = e.getLocalizedMessage();
 			e.printStackTrace();
-			
-			JOptionPane.showMessageDialog(null,
-				    "Can't find VAMP Analysis plugin on System Path!\n" +
-				    "Check the readme for details on this error.\n" +
-				    "Error message received was: " +
-				    e.getLocalizedMessage(),
-				    "Analyser Exception",
-				    JOptionPane.ERROR_MESSAGE);
-			
-			System.exit(1);
 		} 
 		catch (UnsupportedAudioFileException e) {
+			error = "Sorry, can't read this MP3. Does it play in a normal player?";
+			e_localised_msg = e.getLocalizedMessage();
 			e.printStackTrace();
-
+		}
+		
+		// If we threw an error, we can't continue.
+		if(error != null) {
 			JOptionPane.showMessageDialog(null,
-				    "Sorry, can't read this MP3. Does it play in a normal player?\n" +
-				    "Error message received was: " +
-				    e.getLocalizedMessage(),
-				    "MP3 Read Error",
+				    error + "\nError message received was: " + e_localised_msg,
+				    "Analysis Error",
 				    JOptionPane.ERROR_MESSAGE);
+			
+			return null;
 		}
 		
 		return beats;

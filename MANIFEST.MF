@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Class-Path: . jar/asm-debug-all.jar jar/mp3spi1.9.5.jar jar/jvamp.jar jar/lwjgl_util.jar jar/jinput.jar jar/jl1.0.1.jar jar/lzma.jar jar/slick-util.jar jar/tritonus_share-0.3.6.jar jar/lwjgl.jar jar/lwjgl_test.jar jar/AppleJavaExtensions.jar jar/lwjgl-debug.jar
+Main-Class: csc3202.Main
+
